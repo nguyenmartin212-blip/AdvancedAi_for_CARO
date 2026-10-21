@@ -1,0 +1,18 @@
+{
+  "game": {"size": 9, "k": 5},
+  "seeds": [0, 1, 2],
+  "arena": {
+    "games_per_pair": 100,
+    "random_opening_moves": 2,
+    "budget_modes": {
+      "time": {"seconds_per_move": 1.0},
+      "compute": {"alphabeta_depth": 3, "mcts_simulations": 400}
+    }
+  },
+  "agents": {
+    "random": {},
+    "heuristic": {},
+    "alphabeta": {"depth": 3},
+    "mcts": {"simulations": 400, "c": 1.4}
+  }
+}

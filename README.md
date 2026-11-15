@@ -11,6 +11,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install numpy pytest
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m scripts.quick_match random random -n 20
+.\.venv\Scripts\python.exe -m scripts.quick_match alphabeta heuristic -n 20 --seed 0
 ```
 
 Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
@@ -45,8 +46,8 @@ Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cậ
 | Level | Agent | Trạng thái |
 | --- | --- | --- |
 | 1 | Random | Đã có, tên registry là `random` |
-| 2 | Heuristic / Rule-based | Cần triển khai trong mốc hiện tại |
-| 3 | Minimax + Alpha-Beta | Cần triển khai trong mốc hiện tại |
+| 2 | Heuristic / Rule-based | Đã có, tên registry là `heuristic` |
+| 3 | Minimax + Alpha-Beta | Đã có, tên registry là `alphabeta` |
 | 4 | MCTS / UCT | Cần triển khai trong mốc hiện tại |
 | 5 | CNN policy (+value), học có giám sát | Kế hoạch sau mốc hiện tại |
 | 6 | Reinforcement Learning (self-play) | Kế hoạch sau mốc hiện tại |

@@ -15,6 +15,31 @@ py -m venv .venv
 
 Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
 
+## MCTS và demo terminal (Thành viên 2)
+
+Nhánh `feat/mcts-cli` bổ sung bot `mcts` và lệnh chơi qua terminal, theo cùng giao diện Agent/registry của bot Heuristic đã có. Chạy tại thư mục gốc repo:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.play_cli random --seed 0
+.\.venv\Scripts\python.exe -m scripts.play_cli mcts --side o --seed 0 --simulations 100 --c 1.4
+.\.venv\Scripts\python.exe -m scripts.quick_match mcts random -n 12 --seed 0
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Người chơi mặc định cầm X và đi trước; `--side o` cho AI đi trước. Nhập `hàng cột`, ví dụ `4 4`, với tọa độ từ 0 đến 8. Nhập sai định dạng, ngoài bàn hoặc vào ô đã có quân thì được nhập lại. Bàn cờ hiện sau mỗi nước; khi thắng hoặc hòa, chương trình in kết quả và dừng. Nhập `q`, Ctrl+C hoặc kết thúc đầu vào để thoát. Các lời nhắc và kết quả dùng tiếng Việt. Xem `--help` để biết tùy chọn; bot lấy từ registry nên dùng được cả `random`, `heuristic` và `mcts`.
+
+MCTS gồm chọn nút theo UCT, mở rộng, mô phỏng ngẫu nhiên đến hết ván và cập nhật ngược. Mỗi nút lưu tổng kết quả theo góc nhìn **bên sắp đi tại nút đó**. Khi chọn con, lấy âm giá trị trung bình của con; khi cập nhật ngược, đổi dấu qua mỗi lượt. Nước cuối được chọn theo số lần thăm, rồi điểm trung bình từ góc nhìn gốc. Bot kiểm tra thắng ngay trước, sau đó chặn đối thủ ở gốc; mọi mô phỏng dùng bản sao để giữ nguyên trạng thái đầu vào.
+
+Factory nhận `seed`, `simulations` (số nguyên dương) và `c` (hữu hạn, không âm). Mặc định của lớp là 100 mô phỏng; cấu hình chung hiện tại dùng 400. CLI cho phép ghi đè để chạy demo nhanh. Cùng seed, cấu hình và chuỗi lời gọi cho cùng nước đi. Rollout hiện dùng nước ngẫu nhiên, chưa có đánh giá học máy hay giới hạn thời gian; ngân sách mô phỏng thấp có thể bỏ sót chiến thuật sâu.
+
+Kiểm tra thực tế trên nhánh này (15/11/2026, Python 3.15.1, NumPy 2.5.4):
+
+- `pytest -q`: **48 test đạt**, gồm chiến thuật thắng/chặn, cùng seed, giữ nguyên đầu vào, góc nhìn UCT/cập nhật ngược, ván hòa và các trường hợp nhập terminal.
+- Lệnh `quick_match` ở trên: **MCTS thắng 12, thua 0, hòa 0** trước Random; 400 mô phỏng/nước, `c=1.4`, seed gốc 0, đổi bên từng ván và 2 nước khai cuộc ngẫu nhiên theo runner hiện có. Đây là mẫu kiểm tra nhỏ, chưa phải đánh giá sức mạnh tổng quát.
+- Chạy `scripts.play_cli random --seed 0` qua đầu vào terminal đã chuẩn bị: kết thúc sau 9 nước, người chơi X thắng; đã thử sai định dạng, tọa độ âm/ngoài bàn và ô đã có quân.
+
+Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cập nhật sau khi nhóm review và merge.
+
 ## Tiến độ các level
 
 | Level | Agent | Trạng thái |

@@ -49,7 +49,8 @@ def evaluate(game: Gomoku, player: int) -> float:
     return float(own_score - opponent_score)
 
 
-def _winning_action(game: Gomoku, player: int, actions: list[int]) -> int | None:
+def winning_action(game: Gomoku, player: int, actions: list[int]) -> int | None:
+    """Return the first action that would win for player, without mutating game."""
     probe = game.clone()
     probe.player = player
     for action in actions:
@@ -76,7 +77,7 @@ class HeuristicAgent(Agent):
 
         player = game.player
         for side in (player, -player):
-            tactical_action = _winning_action(game, side, actions)
+            tactical_action = winning_action(game, side, actions)
             if tactical_action is not None:
                 return tactical_action
 

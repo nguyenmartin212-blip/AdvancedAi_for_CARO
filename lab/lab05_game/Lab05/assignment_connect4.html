@@ -1,0 +1,731 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 05 · Connect 4</title>
+<style>
+body{margin:0;background:#f5f7fa;color:#182633;font:16px/1.65 Arial,sans-serif}
+main{margin:0 auto;max-width:910px;padding:42px 28px 56px;background:#fff}
+h1,h2{line-height:1.25}h2{margin-top:2em;padding-top:.55em;border-top:1px solid #ced7e1}
+pre{background:#eef3f8;padding:12px 15px;overflow:auto;font-size:13px;line-height:1.45}
+summary{cursor:pointer;color:#2756a6}.output{border-left:3px solid #6481ad}
+.chart{overflow:auto}svg{display:block}
+</style></head><body><main><h1>Lab 05 · Bài 8. Connect 4</h1>
+<p>Khảo sát Minimax, Alpha-Beta, giới hạn độ sâu và Pure Monte Carlo Search trên cùng môi trường Connect 4. X tương ứng với quân đỏ (+1) và đi trước. O tương ứng với quân vàng (−1).</p>
+<p>Notebook chứa toàn bộ mã và đầu ra. Để chạy lại, chọn Python 3.10+ có NumPy và chạy lần lượt các ô từ trên xuống. Chỉ số cột bắt đầu từ 0. Thời gian tính bằng mili giây và có thể thay đổi giữa các lần chạy.</p>
+<p>Mã và bản thảo phân tích được xây dựng với sự hỗ trợ của OpenAI Codex.</p>
+<h2>1. Mô hình tìm kiếm và kích thước không gian</h2>
+<p>Trạng thái gồm bàn cờ NumPy 2 chiều với giá trị 0 (trống), +1 (X), −1 (O) và người đến lượt do môi trường quản lý. Trạng thái đầu là bàn rỗng và X đi. <code>actions</code> trả về các cột còn chỗ nếu ván đang tiếp diễn. <code>result</code> tạo bản sao và thả quân vào vị trí trống thấp nhất trong cột. <code>terminal</code> phát hiện chuỗi bốn quân cùng màu theo ngang, dọc hoặc chéo, hoặc bàn đầy. <code>utility</code> trả +1 khi người chơi được hỏi thắng, −1 khi thua và 0 khi hòa. Giá trị 0 ở trạng thái đang chơi chưa phải kết quả ván.</p>
+<p>Mỗi cột cao 6 có tối đa 1 + 2 + 2² + … + 2⁶ = 127 cách xếp có trọng lực. Chặn trên thô của số cách xếp bàn là 127⁷ ≈ 5,33 × 10¹⁴. Chặn này còn đếm bàn sai lệch số quân và bàn chỉ xuất hiện nếu tiếp tục đánh sau khi đã thắng. Nếu coi lượt đi là thành phần độc lập thì chặn cho cặp (bàn, lượt) gấp đôi. Từ trạng thái khởi đầu hợp lệ, lượt đã xác định bởi số quân.</p>
+<p>Cây trò chơi đếm các lịch sử đi khác nhau. Mỗi nút có tối đa 7 nhánh và độ sâu tối đa là 42, cho chặn trên tổng số nút là (7⁴³ − 1)/6 ≈ 3,64 × 10³⁵. Một ước lượng khác cho lớp lịch sử đầy bàn trước khi loại các ván kết thúc sớm là 42!/(6!)⁷ ≈ 1,40 × 10³¹. Mỗi lịch sử trong phép đếm này dùng đúng 6 lần mỗi cột. Số lá thực của cây có cả các lịch sử ngắn hơn và nhiều lịch sử hội tụ vào cùng một trạng thái.</p>
+<h2>2. Môi trường và Random Agent</h2>
+<p>Các hàm công khai dùng mảng NumPy với kiểu số nguyên 8 bit như mã mẫu dùng giá trị 0, 1 và −1. Nội bộ tìm kiếm mã hóa mỗi màu bằng một số nguyên bitboard. Một bit đệm giữa hai cột ngăn phép dịch bit đếm nhầm chuỗi qua ranh giới. Các hàm tác tử nhận bàn cờ, nhận màu tùy chọn và trả cột hợp lệ.</p>
+<details><summary>Mã Python [1]</summary><pre>&quot;&quot;&quot;Connect 4 rules and search agents for configurable NumPy boards.&quot;&quot;&quot;
+
+from dataclasses import dataclass
+from functools import lru_cache
+from math import inf
+from random import Random
+from time import perf_counter
+
+import numpy as np
+
+
+class Layout:
+    def __init__(self, rows, columns):
+        self.rows = rows
+        self.columns = columns
+        self.stride = rows + 1
+        self.bottom = tuple(1 &lt;&lt; (c * self.stride) for c in range(columns))
+        self.top = tuple(bit &lt;&lt; (rows - 1) for bit in self.bottom)
+        self.full = sum(bit * ((1 &lt;&lt; rows) - 1) for bit in self.bottom)
+        self.center_first = tuple(sorted(range(columns), key=lambda c: abs(2 * c - columns + 1)))
+        directions = ((1, 0), (0, 1), (1, 1), (-1, 1))
+        self.shifts = (1, self.stride, self.stride + 1, self.stride - 1)
+        self.windows = []
+        for row in range(rows):
+            for column in range(columns):
+                for dr, dc in directions:
+                    end_row, end_column = row + 3 * dr, column + 3 * dc
+                    if 0 &lt;= end_row &lt; rows and 0 &lt;= end_column &lt; columns:
+                        self.windows.append(sum(
+                            self.bottom[column + k * dc] &lt;&lt; (row + k * dr)
+                            for k in range(4)
+                        ))
+
+    def choices(self, occupied, center_first=False):
+        order = self.center_first if center_first else range(self.columns)
+        return [column for column in order if not occupied &amp; self.top[column]]
+
+    def drop(self, occupied, column):
+        return (occupied + self.bottom[column]) &amp; ~occupied
+
+    def ordered_drops(self, own, other):
+        occupied = own | other
+        winning, blocking, remaining = [], [], []
+        for column in self.choices(occupied, center_first=True):
+            move = self.drop(occupied, column)
+            if self.wins(own | move):
+                winning.append((column, move))
+            elif self.wins(other | move):
+                blocking.append((column, move))
+            else:
+                remaining.append((column, move))
+        return winning + blocking + remaining
+
+    def wins(self, bits):
+        for shift in self.shifts:
+            pairs = bits &amp; (bits &gt;&gt; shift)
+            if pairs &amp; (pairs &gt;&gt; (2 * shift)):
+                return True
+        return False
+
+    def evaluate(self, own, other):
+        weights = (0, 1, 5, 25, 0)
+        score = 0
+        for window in self.windows:
+            if not window &amp; other:
+                score += weights[(window &amp; own).bit_count()]
+            if not window &amp; own:
+                score -= weights[(window &amp; other).bit_count()]
+        return score / (1 + 25 * len(self.windows))
+
+
+@lru_cache(maxsize=None)
+def layout(rows, columns):
+    return Layout(rows, columns)
+
+
+def encode(board):
+    board = np.asarray(board)
+    game = layout(*board.shape)
+    red = yellow = 0
+    for row, column in zip(*np.nonzero(board)):
+        bit = game.bottom[column] &lt;&lt; (game.rows - 1 - int(row))
+        if board[row, column] == 1:
+            red |= bit
+        else:
+            yellow |= bit
+    return game, red, yellow
+
+
+def empty_board(shape=(6, 7)):
+    if len(shape) != 2 or min(shape) &lt; 1:
+        raise ValueError(&quot;Board must have a positive number of rows and columns.&quot;)
+    return np.zeros(shape, dtype=np.int8)
+
+
+def actions(board):
+    game, red, yellow = encode(board)
+    if game.wins(red) or game.wins(yellow):
+        return []
+    return game.choices(red | yellow)
+
+
+def result(board, player, action):
+    if player not in (1, -1):
+        raise ValueError(&quot;Player must be 1 or -1.&quot;)
+    if action not in actions(board):
+        raise ValueError(f&quot;Illegal action: {action}&quot;)
+    new_board = np.array(board, copy=True)
+    row = np.flatnonzero(new_board[:, action] == 0)[-1]
+    new_board[row, action] = player
+    return new_board
+
+
+def terminal(board):
+    game, red, yellow = encode(board)
+    return game.wins(red) or game.wins(yellow) or (red | yellow) == game.full
+
+
+def utility(board, player=1):
+    game, red, yellow = encode(board)
+    return player * (int(game.wins(red)) - int(game.wins(yellow)))
+
+
+def eval_fun(board, player=1):
+    game, red, yellow = encode(board)
+    return game.evaluate(red, yellow) * player
+
+
+def visualize(board):
+    print(&quot; &quot;.join(str(c) for c in range(board.shape[1])))
+    symbols = {0: &quot;·&quot;, 1: &quot;X&quot;, -1: &quot;O&quot;}
+    for row in board:
+        print(&quot; &quot;.join(symbols[value] for value in row))
+
+
+def random_player(board, player=1, *, rng=None):
+    choices = actions(board)
+    return (rng or DEFAULT_RNG).choice(choices) if choices else None
+
+
+DEFAULT_RNG = Random()
+
+
+@dataclass(frozen=True)
+class Decision:
+    move: int | None
+    value: float | None
+    nodes: int
+    ms: float
+
+
+class NodeBudgetReached(Exception):
+    pass
+
+
+class MinimaxAgent:
+    &quot;&quot;&quot;Negamax with optional alpha-beta, depth limit and transposition table.&quot;&quot;&quot;
+
+    def __init__(self, *, prune=True, ordered=False, cutoff=None, cache=False, node_budget=None):
+        if cutoff is not None and cutoff &lt; 1:
+            raise ValueError(&quot;Search cutoff must be at least one ply.&quot;)
+        self.prune = prune
+        self.ordered = ordered
+        self.cutoff = cutoff
+        self.cache = cache
+        self.node_budget = node_budget
+        self.nodes = 0
+        self.table = {}
+        self.last = None
+
+    def __call__(self, board, player=1):
+        return self.search(board, player).move
+
+    def search(self, board, player=1):
+        start = perf_counter()
+        game, red, yellow = encode(board)
+        own, other = (red, yellow) if player == 1 else (yellow, red)
+        depth = self.cutoff if self.cutoff is not None else game.full.bit_count() - (own | other).bit_count()
+        self.nodes = 0
+        try:
+            value, move = self._visit(game, own, other, depth, -inf, inf)
+        except NodeBudgetReached:
+            value, move = None, None
+        self.last = Decision(move, value, self.nodes, 1000 * (perf_counter() - start))
+        return self.last
+
+    def _visit(self, game, own, other, depth, alpha, beta):
+        if self.node_budget is not None and self.nodes == self.node_budget:
+            raise NodeBudgetReached
+        self.nodes += 1
+        occupied = own | other
+        if game.wins(other):
+            return -1, None
+        if game.wins(own):
+            return 1, None
+        if occupied == game.full:
+            return 0, None
+        if depth == 0:
+            return game.evaluate(own, other), None
+
+        original_alpha, original_beta = alpha, beta
+        key = (game, own, other, depth)
+        entry = self.table.get(key) if self.cache else None
+        if entry is not None:
+            score, move, bound = entry
+            if bound == &quot;exact&quot; or (bound == &quot;lower&quot; and score &gt;= beta) or (
+                bound == &quot;upper&quot; and score &lt;= alpha
+            ):
+                return score, move
+
+        best_score, best_move = -inf, None
+        drops = game.ordered_drops(own, other) if self.ordered else (
+            (column, game.drop(occupied, column)) for column in game.choices(occupied)
+        )
+        for column, bit in drops:
+            child = own | bit
+            child_score, _ = self._visit(game, other, child, depth - 1, -beta, -alpha)
+            score = -child_score
+            if score &gt; best_score:
+                best_score, best_move = score, column
+            if self.prune:
+                alpha = max(alpha, score)
+                if alpha &gt;= beta:
+                    break
+
+        if self.cache:
+            bound = &quot;exact&quot;
+            if best_score &lt;= original_alpha:
+                bound = &quot;upper&quot;
+            elif best_score &gt;= original_beta:
+                bound = &quot;lower&quot;
+            self.table[key] = best_score, best_move, bound
+        return best_score, best_move
+
+
+def minimax_player(board, player=1):
+    return MinimaxAgent(prune=False)(board, player)
+
+
+def alpha_beta_player(board, player=1):
+    return MinimaxAgent(ordered=True)(board, player)
+
+
+def heuristic_player(board, player=1, *, cutoff=4):
+    return MinimaxAgent(ordered=True, cutoff=cutoff)(board, player)
+
+
+def playout(game, own, other, rng):
+    &quot;&quot;&quot;Return the result from the perspective of the player about to move.&quot;&quot;&quot;
+    sign = 1
+    while True:
+        if game.wins(other):
+            return -sign
+        occupied = own | other
+        if occupied == game.full:
+            return 0
+        column = rng.choice(game.choices(occupied))
+        own, other = other, own | game.drop(occupied, column)
+        sign = -sign
+
+
+class PMCSAgent:
+    def __init__(self, samples=100, seed=None):
+        if samples &lt; 1:
+            raise ValueError(&quot;Use at least one rollout per action.&quot;)
+        self.samples = samples
+        self.rng = Random(seed)
+        self.last = None
+        self.estimates = {}
+
+    def __call__(self, board, player=1):
+        return self.search(board, player).move
+
+    def search(self, board, player=1):
+        start = perf_counter()
+        game, red, yellow = encode(board)
+        own, other = (red, yellow) if player == 1 else (yellow, red)
+        self.estimates = {}
+        occupied = own | other
+        if game.wins(own) or game.wins(other) or occupied == game.full:
+            move, value = None, utility(board, player)
+        else:
+            for column in game.choices(occupied, center_first=True):
+                child = own | game.drop(occupied, column)
+                wins = sum(-playout(game, other, child, self.rng) for _ in range(self.samples))
+                self.estimates[column] = wins / self.samples
+            move = max(self.estimates, key=self.estimates.get)
+            value = self.estimates[move]
+        self.last = Decision(move, value, len(self.estimates) * self.samples, 1000 * (perf_counter() - start))
+        return self.last
+
+
+def pmcs_player(board, player=1, *, samples=100):
+    return PMCSAgent(samples)(board, player)
+
+
+def play(red_agent, yellow_agent, board=None, first=1):
+    board = empty_board() if board is None else np.array(board, copy=True)
+    players = {1: red_agent, -1: yellow_agent}
+    player = first
+    history = []
+    while not terminal(board):
+        column = players[player](board, player)
+        board = result(board, player, column)
+        history.append((player, column))
+        player = -player
+    return utility(board, 1), history</pre></details>
+<details><summary>Mã Python [2]</summary><pre>def from_columns(shape, columns):
+    board = empty_board(shape)
+    player = 1
+    for column in columns:
+        board = result(board, player, column)
+        player = -player
+    return board, player
+
+
+def count_games(agent, games, shape, seed):
+    random_rng = Random(seed)
+
+    def opponent(board, player=1):
+        return random_player(board, player, rng=random_rng)
+
+    counts = {1: 0, 0: 0, -1: 0}
+    for game_number in range(games):
+        color = 1 if game_number % 2 == 0 else -1
+        red, yellow = (agent, opponent) if color == 1 else (opponent, agent)
+        value, _ = play(red, yellow, empty_board(shape))
+        counts[color * value] += 1
+    return counts
+
+
+def counts_text(counts):
+    return f&quot;{counts[1]} thắng, {counts[0]} hòa, {counts[-1]} thua&quot;
+
+
+board = empty_board((4, 4))
+next_board = result(board, 1, 2)
+assert board[3, 2] == 0 and next_board[3, 2] == 1
+assert actions(next_board) == [0, 1, 2, 3]
+assert not terminal(next_board)
+visualize(next_board)
+
+full_column, player = from_columns((4, 4), [0, 0, 0, 0])
+assert actions(full_column) == [1, 2, 3]
+
+red_rng, yellow_rng = Random(51), Random(52)
+counts = {1: 0, 0: 0, -1: 0}
+start = perf_counter()
+for _ in range(1000):
+    value, _ = play(
+        lambda b, p: random_player(b, p, rng=red_rng),
+        lambda b, p: random_player(b, p, rng=yellow_rng),
+    )
+    counts[value] += 1
+print(f&quot;Random X vs Random O, 1.000 ván 6×7 · {counts_text(counts)} theo góc nhìn X.&quot;)
+print(f&quot;Tổng thời gian: {perf_counter() - start:.3f} s&quot;)</pre></details>
+<pre class="output">0 1 2 3
+· · · ·
+· · · ·
+· · · ·
+· · X ·
+Random X vs Random O, 1.000 ván 6×7 · 557 thắng, 1 hòa, 442 thua theo góc nhìn X.
+Tổng thời gian: 0.859 s
+</pre>
+<p>X thắng 55.7% và O thắng 44.2% trong mẫu này. X có lượt đầu để chiếm vị trí và có thể hoàn thành chuỗi trước lượt đáp trả của O. Chênh lệch ở đây đo hành vi của hai tác tử ngẫu nhiên với seed 51 và 52.</p>
+<h2>3. Minimax, Alpha-Beta và thứ tự nước đi</h2>
+<p>Minimax triển khai theo Negamax. Giá trị của một trạng thái được đo theo góc nhìn người đến lượt. Đệ quy đổi màu và đổi dấu giá trị của trạng thái con. Alpha-Beta giữ cùng định nghĩa giá trị và cắt nhánh khi không thể cải thiện lựa chọn ở phía trên. Nếu có nhiều nước tối ưu, tác tử giữ nước đầu tiên theo thứ tự duyệt. Thứ tự ưu tiên thử nước thắng ngay, nước chiếm cột có thể cho đối phương thắng ngay, rồi cột gần tâm. Phương án đối chiếu duyệt từ trái sang phải.</p>
+<p>Bảng đầu so sánh trên sáu vị trí hợp lệ tạo bằng chuỗi cột dưới đây. Nút được đếm mỗi lần vào hàm đệ quy, gồm cả gốc và trạng thái kết thúc. Ba cấu hình đều tắt bộ nhớ trạng thái.</p>
+<details><summary>Mã Python [3]</summary><pre>POSITIONS = (
+    (&quot;X thắng ngang&quot;, [0, 0, 1, 1, 2, 2], 3),
+    (&quot;X thắng dọc&quot;, [0, 1, 0, 1, 0, 2], 0),
+    (&quot;X thắng chéo /&quot;, [0, 1, 1, 2, 0, 2, 2, 3, 3, 3], 3),
+    (&quot;X thắng chéo xuống&quot;, [3, 2, 2, 1, 3, 1, 1, 0, 0, 0], 0),
+    (&quot;O thắng dọc&quot;, [0, 1, 0, 1, 2, 1, 3], 1),
+    (&quot;X phải chặn cột 0&quot;, [3, 0, 3, 0, 2, 0], 0),
+)
+
+print(f&quot;{&#x27;Vị trí 4×4&#x27;:&lt;22} {&#x27;Thuật toán&#x27;:&lt;19} {&#x27;Cột&#x27;:&gt;4} {&#x27;V&#x27;:&gt;4} {&#x27;Nút&#x27;:&gt;9} {&#x27;ms&#x27;:&gt;9}&quot;)
+for name, columns, expected in POSITIONS:
+    board, player = from_columns((4, 4), columns)
+    assert not terminal(board)
+    if name.startswith((&quot;X thắng&quot;, &quot;O thắng&quot;)):
+        won = result(board, player, expected)
+        assert terminal(won) and not actions(won)
+        assert utility(won, player) == 1 and utility(won, -player) == -1
+    else:
+        assert utility(result(board, -player, expected), -player) == 1
+    decisions = [
+        (&quot;Minimax&quot;, MinimaxAgent(prune=False).search(board, player)),
+        (&quot;Alpha-Beta&quot;, MinimaxAgent().search(board, player)),
+        (&quot;AB ưu tiên&quot;, MinimaxAgent(ordered=True).search(board, player)),
+    ]
+    assert all(d.value == decisions[0][1].value for _, d in decisions)
+    assert decisions[-1][1].move == expected
+    for method, decision in decisions:
+        print(f&quot;{name:&lt;22} {method:&lt;19} {decision.move:&gt;4} {decision.value:&gt;4} {decision.nodes:&gt;9,} {decision.ms:&gt;9.3f}&quot;)
+
+print(&quot;\n&quot; + f&quot;{&#x27;Bàn rỗng&#x27;:&lt;12} {&#x27;Cấu hình AB&#x27;:&lt;22} {&#x27;Cột&#x27;:&gt;4} {&#x27;V&#x27;:&gt;4} {&#x27;Nút&#x27;:&gt;10} {&#x27;ms&#x27;:&gt;10}&quot;)
+opening_results = []
+for shape in [(4, 4), (4, 5), (5, 6), (6, 7)]:
+    for ordered, cache in ([(False, False), (True, False), (True, True)] if shape == (4, 4) else [(True, True)]):
+        decision = MinimaxAgent(ordered=ordered, cache=cache, node_budget=250_000).search(empty_board(shape))
+        opening_results.append((shape, ordered, cache, decision))
+        label = &quot;ưu tiên + bộ nhớ&quot; if cache else &quot;ưu tiên&quot; if ordered else &quot;trái sang phải&quot;
+        move = &quot;—&quot; if decision.move is None else str(decision.move)
+        value = &quot;—&quot; if decision.value is None else str(decision.value)
+        print(f&quot;{str(shape):&lt;12} {label:&lt;22} {move:&gt;4} {value:&gt;4} {decision.nodes:&gt;10,} {decision.ms:&gt;10.3f}&quot;)</pre></details>
+<pre class="output">Vị trí 4×4             Thuật toán           Cột    V       Nút        ms
+X thắng ngang          Minimax                3    1    13,401    26.865
+X thắng ngang          Alpha-Beta             3    1     2,670     6.129
+X thắng ngang          AB ưu tiên             3    1       134     0.548
+X thắng dọc            Minimax                0    1    18,099    36.924
+X thắng dọc            Alpha-Beta             0    1       162     0.462
+X thắng dọc            AB ưu tiên             0    1       167     0.629
+X thắng chéo /         Minimax                0    1       268     0.489
+X thắng chéo /         Alpha-Beta             0    1        58     0.135
+X thắng chéo /         AB ưu tiên             3    1        39     0.160
+X thắng chéo xuống     Minimax                0    1       268     0.503
+X thắng chéo xuống     Alpha-Beta             0    1        41     0.114
+X thắng chéo xuống     AB ưu tiên             0    1        41     0.165
+O thắng dọc            Minimax                1    1     7,351    15.946
+O thắng dọc            Alpha-Beta             1    1       184     0.533
+O thắng dọc            AB ưu tiên             1    1       211     0.844
+X phải chặn cột 0      Minimax                0    0    15,735    30.977
+X phải chặn cột 0      Alpha-Beta             0    0       816     2.022
+X phải chặn cột 0      AB ưu tiên             0    0       450     1.724
+
+Bàn rỗng     Cấu hình AB             Cột    V        Nút         ms
+(4, 4)       trái sang phải            0    0     62,889    160.503
+(4, 4)       ưu tiên                   1    0     67,921    272.492
+(4, 4)       ưu tiên + bộ nhớ          1    0     15,926     71.305
+(4, 5)       ưu tiên + bộ nhớ          2    0    122,134    600.797
+(5, 6)       ưu tiên + bộ nhớ          —    —    250,000   1896.232
+(6, 7)       ưu tiên + bộ nhớ          —    —    250,000   2496.777
+</pre>
+<p>Alpha-Beta giữ nguyên giá trị Minimax trên cả sáu vị trí. Ở thế thắng chéo /, Minimax có thể chọn cột 0 vì nước này vẫn bảo đảm thắng, còn thứ tự ưu tiên chọn cột 3 và thắng ngay. Tại thế cần chặn, tác tử ưu tiên chọn cột 0 và giữ được hòa với đối thủ tối ưu.</p>
+<p>Ở bàn rỗng 4×4, hai thứ tự đều cho giá trị hòa. Duyệt trái sang phải xét 62,889 nút trong 160.50 ms, còn duyệt ưu tiên xét 67,921 nút trong 272.49 ms. Việc xếp nước có chi phí riêng và hiệu quả phụ thuộc vị trí. Với bảng trạng thái, cấu hình ưu tiên xét 15,926 lượt vào hàm trong 71.31 ms. Bảng lưu giá trị chính xác hoặc cận Alpha-Beta để dùng khi thứ tự các nước độc lập hội tụ vào một vị trí đã gặp.</p>
+<p>Dấu — ở các cấu hình đạt 250.000 nút nghĩa là phép đo dừng trước khi xác định được nước đi và giá trị chính xác. Bàn chuẩn có thêm cột và nhiều lượt hơn, nên cả hệ số phân nhánh lẫn độ sâu đều tăng. Thử nghiệm này giải thích vì sao tìm kiếm đến hết ván bằng cài đặt trực tiếp vượt ngân sách, kể cả khi dùng cắt tỉa và bảng trạng thái.</p>
+<details><summary>Mã Python [4]</summary><pre>exact_agent = MinimaxAgent(ordered=True, cache=True)
+exact_counts = count_games(exact_agent, 100, (4, 4), seed=271)
+assert exact_counts[-1] == 0
+print(&quot;Minimax + Alpha-Beta vs Random trên 4×4:&quot;, counts_text(exact_counts))
+print(&quot;Số ván cầm X: 50. Số ván cầm O: 50.&quot;)</pre></details>
+<pre class="output">Minimax + Alpha-Beta vs Random trên 4×4: 64 thắng, 36 hòa, 0 thua
+Số ván cầm X: 50. Số ván cầm O: 50.
+</pre>
+<p>Tác tử tìm đến trạng thái kết thúc và không thua trong 100 ván trên bàn 4×4. Random có thể giữ hòa bằng nước hợp lệ phù hợp hoặc bỏ lỡ nước phòng thủ và tạo cơ hội thắng cho Minimax. Bảng trạng thái được giữ giữa các lượt trong phép đấu này.</p>
+<h2>4. Alpha-Beta với heuristic và cutoff</h2>
+<p>Tại nút chưa kết thúc ở độ sâu cutoff, xét từng đoạn 4 ô theo bốn hướng. Đoạn bị cả hai bên chiếm có giá trị 0. Đoạn chỉ có quân của một bên được chấm 1, 5 hoặc 25 tùy có 1, 2 hoặc 3 quân, với dấu âm cho đối thủ. Chia tổng cho 1 + 25 × số đoạn để điểm heuristic nằm trong (−1, 1). Thắng và thua đã xác định vẫn dùng +1 và −1. Cutoff tính theo số lượt của cả hai bên kể từ gốc.</p>
+<details><summary>Mã Python [5]</summary><pre>print(f&quot;{&#x27;Vị trí 6×7&#x27;:&lt;22} {&#x27;Cutoff&#x27;:&gt;6} {&#x27;Cột&#x27;:&gt;4} {&#x27;Điểm&#x27;:&gt;9} {&#x27;Nút&#x27;:&gt;8} {&#x27;ms&#x27;:&gt;9}&quot;)
+for name, columns, expected in POSITIONS:
+    board, player = from_columns((6, 7), columns)
+    assert -1 &lt; eval_fun(board, player) &lt; 1
+    assert eval_fun(board, player) == -eval_fun(board, -player)
+    for depth in (2, 4, 6):
+        decision = MinimaxAgent(ordered=True, cutoff=depth).search(board, player)
+        assert decision.move == expected
+        print(f&quot;{name:&lt;22} {depth:&gt;6} {decision.move:&gt;4} {decision.value:&gt;9.3f} {decision.nodes:&gt;8,} {decision.ms:&gt;9.3f}&quot;)
+
+print(&quot;\n&quot; + f&quot;{&#x27;Bàn rỗng&#x27;:&lt;12} {&#x27;Cutoff&#x27;:&gt;6} {&#x27;Cột&#x27;:&gt;4} {&#x27;Nút&#x27;:&gt;8} {&#x27;ms&#x27;:&gt;9}&quot;)
+for shape in [(4, 4), (4, 5), (5, 6), (6, 7)]:
+    for depth in (2, 4, 6):
+        decision = MinimaxAgent(ordered=True, cutoff=depth).search(empty_board(shape))
+        print(f&quot;{str(shape):&lt;12} {depth:&gt;6} {decision.move:&gt;4} {decision.nodes:&gt;8,} {decision.ms:&gt;9.3f}&quot;)
+
+for red, yellow in [(2, 4), (4, 2)]:
+    value, moves = play(MinimaxAgent(ordered=True, cutoff=red), MinimaxAgent(ordered=True, cutoff=yellow))
+    outcome = {1: &quot;X thắng&quot;, -1: &quot;O thắng&quot;, 0: &quot;hòa&quot;}[value]
+    print(f&quot;Cutoff {red} (X) vs cutoff {yellow} (O) · {outcome} sau {len(moves)} lượt.&quot;)</pre></details>
+<pre class="output">Vị trí 6×7             Cutoff  Cột      Điểm      Nút        ms
+X thắng ngang               2    3     1.000       14     0.339
+X thắng ngang               4    3     1.000       98     1.190
+X thắng ngang               6    3     1.000      182     2.827
+X thắng dọc                 2    0     1.000       14     0.313
+X thắng dọc                 4    0     1.000       98     1.980
+X thắng dọc                 6    0     1.000      686    10.978
+X thắng chéo /              2    3     1.000       14     0.188
+X thắng chéo /              4    3     1.000       28     0.512
+X thắng chéo /              6    3     1.000      124     1.666
+X thắng chéo xuống          2    0     1.000       14     0.280
+X thắng chéo xuống          4    0     1.000       97     1.718
+X thắng chéo xuống          6    0     1.000      597    10.591
+O thắng dọc                 2    1     1.000       14     0.288
+O thắng dọc                 4    1     1.000       98     1.986
+O thắng dọc                 6    1     1.000      686    13.482
+X phải chặn cột 0           2    0     0.007       21     0.327
+X phải chặn cột 0           4    0     0.015      152     3.175
+X phải chặn cột 0           6    0     0.019    1,192    22.822
+
+Bàn rỗng     Cutoff  Cột      Nút        ms
+(4, 4)            2    0       18     0.177
+(4, 4)            4    0      180     1.607
+(4, 4)            6    0    1,325     9.840
+(4, 5)            2    1       20     0.298
+(4, 5)            4    1      189     1.560
+(4, 5)            6    1    2,013    17.148
+(5, 6)            2    1       27     0.424
+(5, 6)            4    2      254     3.684
+(5, 6)            6    2    1,796    24.819
+(6, 7)            2    3       24     0.554
+(6, 7)            4    3      236     4.788
+(6, 7)            6    3    1,497    31.263
+Cutoff 2 (X) vs cutoff 4 (O) · X thắng sau 19 lượt.
+Cutoff 4 (X) vs cutoff 2 (O) · X thắng sau 39 lượt.
+</pre>
+<p>Cả ba cutoff đều thấy các nước thắng ngay và nước chặn duy nhất trong bộ vị trí trên. Ở bàn rỗng, tăng cutoff cho phép nhìn xa hơn và xét nhiều nút hơn. Mỗi cấu hình trong hai ván đối đầu là tất định. Đổi màu một lần giúp quan sát ảnh hưởng của vai đi trước. Hai ván riêng lẻ chưa đủ để ước lượng tỷ lệ thắng chung.</p>
+<h2>5. Pure Monte Carlo Search</h2>
+<p>Từ mỗi cột hợp lệ, thả quân rồi để hai bên chọn ngẫu nhiên đến khi ván kết thúc. Với N lần thử cho mỗi cột, ước lượng trung bình lợi ích (+1, 0, −1) từ góc nhìn tác tử và chọn cột có trung bình cao nhất. Cột thắng ngay nhận điểm 1 trong mọi lần mô phỏng. Các điểm ngang nhau được xử lý theo thứ tự gần tâm trước.</p>
+<details><summary>Mã Python [6]</summary><pre>print(f&quot;{&#x27;Vị trí 6×7&#x27;:&lt;22} {&#x27;N/cột&#x27;:&gt;6} {&#x27;Cột&#x27;:&gt;4} {&#x27;Điểm&#x27;:&gt;9} {&#x27;Playout&#x27;:&gt;9} {&#x27;ms&#x27;:&gt;9}&quot;)
+for name, columns, expected in POSITIONS:
+    board, player = from_columns((6, 7), columns)
+    for samples in (10, 50, 100):
+        decision = PMCSAgent(samples=samples, seed=81).search(board, player)
+        print(f&quot;{name:&lt;22} {samples:&gt;6} {decision.move:&gt;4} {decision.value:&gt;9.3f} {decision.nodes:&gt;9,} {decision.ms:&gt;9.3f}&quot;)</pre></details>
+<pre class="output">Vị trí 6×7              N/cột  Cột      Điểm   Playout        ms
+X thắng ngang              10    3     1.000        70     2.058
+X thắng ngang              50    3     1.000       350    10.013
+X thắng ngang             100    3     1.000       700    18.606
+X thắng dọc                10    0     1.000        70     1.844
+X thắng dọc                50    0     1.000       350     9.459
+X thắng dọc               100    0     1.000       700    19.646
+X thắng chéo /             10    3     1.000        70     1.418
+X thắng chéo /             50    3     1.000       350     5.825
+X thắng chéo /            100    3     1.000       700    11.790
+X thắng chéo xuống         10    2     1.000        70     1.552
+X thắng chéo xuống         50    0     1.000       350     7.269
+X thắng chéo xuống        100    0     1.000       700    14.974
+O thắng dọc                10    1     1.000        70     2.032
+O thắng dọc                50    1     1.000       350     9.231
+O thắng dọc               100    1     1.000       700    18.279
+X phải chặn cột 0          10    0     0.800        70     1.948
+X phải chặn cột 0          50    0     0.300       350     8.072
+X phải chặn cột 0         100    0     0.640       700    18.447
+</pre>
+<p>Alpha-Beta duyệt phản công của đối phương nên bắt được mối đe dọa buộc chặn trong cây ngắn. PMCS đo hiệu quả trước đối thủ chọn ngẫu nhiên. Ở thế X thắng chéo xuống, cột 2 cũng đạt trung bình 1 với N = 10 và thắng tiêu chí phụ gần tâm, trong khi cột 0 kết thúc ván ngay. Tăng lên 50 hoặc 100 lượt mô phỏng giúp phân biệt hai cột trong mẫu này. N lớn hơn giảm nhiễu ước lượng, còn chính sách mô phỏng quyết định ý nghĩa của ước lượng.</p>
+<h2>6. Khảo sát mở rộng về thời gian và chất lượng</h2>
+<p>Tạo 10 bàn 6×7 ở mỗi giai đoạn từ các ván ngẫu nhiên với seed 470. Giai đoạn đầu có từ 6 đến 16 lượt, giai đoạn cuối có từ 24 đến 38 lượt. Mỗi nhóm gồm năm bàn có đúng một nước thắng ngay và năm bàn có đúng một cột phải chặn, trong đó người đi hiện tại không có nước thắng ngay. Chất lượng là tỷ lệ chọn đúng cột chiến thuật trên các bàn này. Thước đo tập trung vào quyết định ngắn hạn.</p>
+<details><summary>Mã Python [7]</summary><pre>def target_move(board, player):
+    possible = actions(board)
+    wins = [c for c in possible if utility(result(board, player, c), player) == 1]
+    threats = [c for c in possible if utility(result(board, -player, c), -player) == 1]
+    if len(wins) == 1:
+        return &quot;thắng ngay&quot;, wins[0]
+    if not wins and len(threats) == 1:
+        return &quot;phải chặn&quot;, threats[0]
+    return None
+
+
+def sample_positions():
+    rng = Random(470)
+    bins = {(stage, target): [] for stage in (&quot;Đầu&quot;, &quot;Cuối&quot;) for target in (&quot;thắng ngay&quot;, &quot;phải chặn&quot;)}
+    seen = set()
+    for _ in range(2000):
+        board, player = empty_board(), 1
+        for ply in range(42):
+            if terminal(board):
+                break
+            stage = &quot;Đầu&quot; if 6 &lt;= ply &lt;= 16 else &quot;Cuối&quot; if 24 &lt;= ply &lt;= 38 else None
+            target = target_move(board, player) if stage else None
+            if target:
+                kind, move = target
+                key = (board.tobytes(), player)
+                if len(bins[stage, kind]) &lt; 5 and key not in seen:
+                    bins[stage, kind].append((board, player, move))
+                    seen.add(key)
+            if all(len(positions) == 5 for positions in bins.values()):
+                return {
+                    stage: bins[stage, &quot;thắng ngay&quot;] + bins[stage, &quot;phải chặn&quot;]
+                    for stage in (&quot;Đầu&quot;, &quot;Cuối&quot;)
+                }
+            board = result(board, player, rng.choice(actions(board)))
+            player = -player
+    raise RuntimeError(&quot;Chưa đủ vị trí khảo sát.&quot;)
+
+
+stages = sample_positions()
+families = {
+    &quot;AB&quot;: {depth: lambda d=depth: MinimaxAgent(ordered=True, cutoff=d) for depth in (2, 4, 6)},
+    &quot;PMCS&quot;: {count: lambda n=count: PMCSAgent(samples=n, seed=85) for count in (5, 15, 45)},
+}
+
+measurements = {}
+print(f&quot;{&#x27;Tác tử&#x27;:&lt;8} {&#x27;Tham số&#x27;:&gt;7} {&#x27;Giai đoạn&#x27;:&gt;10} {&#x27;Đúng&#x27;:&gt;7} {&#x27;ms/nước&#x27;:&gt;10}&quot;)
+for name, configurations in families.items():
+    for parameter, make_agent in configurations.items():
+        for stage, positions in stages.items():
+            decisions = [make_agent().search(board, player) for board, player, _ in positions]
+            accuracy = sum(d.move == move for d, (_, _, move) in zip(decisions, positions)) / len(positions)
+            average = sum(d.ms for d in decisions) / len(positions)
+            measurements[name, parameter, stage] = (average, accuracy)
+            print(f&quot;{name:&lt;8} {parameter:&gt;7} {stage:&gt;10} {accuracy:&gt;6.0%} {average:&gt;10.3f}&quot;)</pre></details>
+<pre class="output">Tác tử   Tham số  Giai đoạn    Đúng    ms/nước
+AB             2        Đầu   100%      0.340
+AB             2       Cuối   100%      0.178
+AB             4        Đầu   100%      1.870
+AB             4       Cuối   100%      0.489
+AB             6        Đầu   100%     13.295
+AB             6       Cuối   100%      1.426
+PMCS           5        Đầu    30%      1.095
+PMCS           5       Cuối    60%      0.372
+PMCS          15        Đầu    60%      2.819
+PMCS          15       Cuối    90%      0.996
+PMCS          45        Đầu    80%      8.092
+PMCS          45       Cuối   100%      2.615
+</pre>
+<details><summary>Mã Python [8]</summary><pre>from html import escape
+from math import log10
+
+
+def tradeoff_chart(results):
+    colors = {&quot;AB&quot;: &quot;#2756a6&quot;, &quot;PMCS&quot;: &quot;#b45309&quot;}
+    min_log = min(log10(ms) for ms, _ in results.values()) - 0.18
+    max_log = max(log10(ms) for ms, _ in results.values()) + 0.2
+    parts = [
+        &#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;820&quot; height=&quot;315&quot; viewBox=&quot;0 0 820 315&quot; role=&quot;img&quot; aria-label=&quot;Thời gian và tỷ lệ đúng nước chiến thuật&quot;&gt;&#x27;,
+        &#x27;&lt;rect width=&quot;820&quot; height=&quot;315&quot; fill=&quot;#ffffff&quot;/&gt;&#x27;,
+        &#x27;&lt;g fill=&quot;#182633&quot; font-family=&quot;Arial, sans-serif&quot; font-size=&quot;12&quot;&gt;&#x27;,
+    ]
+    for index, stage in enumerate(stages):
+        x0 = 66 + index * 402
+        y0, width, height = 244, 322, 195
+        parts.append(f&#x27;&lt;text x=&quot;{x0}&quot; y=&quot;26&quot; font-size=&quot;16&quot; font-weight=&quot;bold&quot;&gt;{stage} ván&lt;/text&gt;&#x27;)
+        for rate in (0, .25, .5, .75, 1):
+            y = y0 - rate * height
+            parts.append(f&#x27;&lt;path d=&quot;M{x0} {y}h{width}&quot; stroke=&quot;#dbe2e8&quot;/&gt;&#x27;)
+            parts.append(f&#x27;&lt;text x=&quot;{x0-8}&quot; y=&quot;{y+4}&quot; text-anchor=&quot;end&quot;&gt;{rate:.0%}&lt;/text&gt;&#x27;)
+        for tick in (0.1, 1, 10, 100, 1000):
+            fraction = (log10(tick) - min_log) / (max_log - min_log)
+            if 0 &lt;= fraction &lt;= 1:
+                x = x0 + fraction * width
+                parts.append(f&#x27;&lt;path d=&quot;M{x} {y0-height}v{height}&quot; stroke=&quot;#edf0f3&quot;/&gt;&#x27;)
+                parts.append(f&#x27;&lt;text x=&quot;{x}&quot; y=&quot;{y0+16}&quot; text-anchor=&quot;middle&quot;&gt;{tick:g}&lt;/text&gt;&#x27;)
+        for name in families:
+            points = []
+            for parameter in families[name]:
+                ms, accuracy = results[name, parameter, stage]
+                x = x0 + (log10(ms) - min_log) / (max_log - min_log) * width
+                y = y0 - accuracy * height
+                points.append((x, y, parameter))
+            joined = &quot; &quot;.join(f&quot;{x},{y}&quot; for x, y, _ in points)
+            color = colors[name]
+            parts.append(f&#x27;&lt;polyline points=&quot;{joined}&quot; fill=&quot;none&quot; stroke=&quot;{color}&quot; stroke-width=&quot;2&quot;/&gt;&#x27;)
+            for x, y, parameter in points:
+                parts.append(f&#x27;&lt;circle cx=&quot;{x}&quot; cy=&quot;{y}&quot; r=&quot;4&quot; fill=&quot;{color}&quot;/&gt;&#x27;)
+                offset = -9 if name == &quot;AB&quot; else 17
+                parts.append(f&#x27;&lt;text x=&quot;{x+4}&quot; y=&quot;{y+offset}&quot; fill=&quot;{color}&quot; font-size=&quot;11&quot;&gt;{escape(name)} {parameter}&lt;/text&gt;&#x27;)
+        parts.append(f&#x27;&lt;text x=&quot;{x0+width/2}&quot; y=&quot;288&quot; text-anchor=&quot;middle&quot;&gt;Thời gian trung bình (ms/nước, trục log)&lt;/text&gt;&#x27;)
+    parts.append(&quot;&lt;/g&gt;&lt;/svg&gt;&quot;)
+    return &quot;&quot;.join(parts)
+
+
+chart_svg = tradeoff_chart(measurements)
+try:
+    from IPython.display import SVG, display
+except ImportError:
+    pass
+else:
+    display(SVG(chart_svg))</pre></details>
+<div class="chart"><svg xmlns="http://www.w3.org/2000/svg" width="820" height="315" viewBox="0 0 820 315" role="img" aria-label="Thời gian và tỷ lệ đúng nước chiến thuật"><rect width="820" height="315" fill="#ffffff"/><g fill="#182633" font-family="Arial, sans-serif" font-size="12"><text x="66" y="26" font-size="16" font-weight="bold">Đầu ván</text><path d="M66 244h322" stroke="#dbe2e8"/><text x="58" y="248" text-anchor="end">0%</text><path d="M66 195.25h322" stroke="#dbe2e8"/><text x="58" y="199.25" text-anchor="end">25%</text><path d="M66 146.5h322" stroke="#dbe2e8"/><text x="58" y="150.5" text-anchor="end">50%</text><path d="M66 97.75h322" stroke="#dbe2e8"/><text x="58" y="101.75" text-anchor="end">75%</text><path d="M66 49h322" stroke="#dbe2e8"/><text x="58" y="53" text-anchor="end">100%</text><path d="M198.8569787672323 49v195" stroke="#edf0f3"/><text x="198.8569787672323" y="260" text-anchor="middle">1</text><path d="M341.74848033256353 49v195" stroke="#edf0f3"/><text x="341.74848033256353" y="260" text-anchor="middle">10</text><polyline points="131.89651994046767,49.0 237.69983853871673,49.0 359.4216996869337,49.0" fill="none" stroke="#2756a6" stroke-width="2"/><circle cx="131.89651994046767" cy="49.0" r="4" fill="#2756a6"/><text x="135.89651994046767" y="40.0" fill="#2756a6" font-size="11">AB 2</text><circle cx="237.69983853871673" cy="49.0" r="4" fill="#2756a6"/><text x="241.69983853871673" y="40.0" fill="#2756a6" font-size="11">AB 4</text><circle cx="359.4216996869337" cy="49.0" r="4" fill="#2756a6"/><text x="363.4216996869337" y="40.0" fill="#2756a6" font-size="11">AB 6</text><polyline points="204.48041989561577,185.5 263.1823057446029,127.0 328.61397373108855,88.0" fill="none" stroke="#b45309" stroke-width="2"/><circle cx="204.48041989561577" cy="185.5" r="4" fill="#b45309"/><text x="208.48041989561577" y="202.5" fill="#b45309" font-size="11">PMCS 5</text><circle cx="263.1823057446029" cy="127.0" r="4" fill="#b45309"/><text x="267.1823057446029" y="144.0" fill="#b45309" font-size="11">PMCS 15</text><circle cx="328.61397373108855" cy="88.0" r="4" fill="#b45309"/><text x="332.61397373108855" y="105.0" fill="#b45309" font-size="11">PMCS 45</text><text x="227.0" y="288" text-anchor="middle">Thời gian trung bình (ms/nước, trục log)</text><text x="468" y="26" font-size="16" font-weight="bold">Cuối ván</text><path d="M468 244h322" stroke="#dbe2e8"/><text x="460" y="248" text-anchor="end">0%</text><path d="M468 195.25h322" stroke="#dbe2e8"/><text x="460" y="199.25" text-anchor="end">25%</text><path d="M468 146.5h322" stroke="#dbe2e8"/><text x="460" y="150.5" text-anchor="end">50%</text><path d="M468 97.75h322" stroke="#dbe2e8"/><text x="460" y="101.75" text-anchor="end">75%</text><path d="M468 49h322" stroke="#dbe2e8"/><text x="460" y="53" text-anchor="end">100%</text><path d="M600.8569787672322 49v195" stroke="#edf0f3"/><text x="600.8569787672322" y="260" text-anchor="middle">1</text><path d="M743.7484803325635 49v195" stroke="#edf0f3"/><text x="743.7484803325635" y="260" text-anchor="middle">10</text><polyline points="493.7204702817596,49.0 556.4250414974601,49.0 622.8941436215372,49.0" fill="none" stroke="#2756a6" stroke-width="2"/><circle cx="493.7204702817596" cy="49.0" r="4" fill="#2756a6"/><text x="497.7204702817596" y="40.0" fill="#2756a6" font-size="11">AB 2</text><circle cx="556.4250414974601" cy="49.0" r="4" fill="#2756a6"/><text x="560.4250414974601" y="40.0" fill="#2756a6" font-size="11">AB 4</text><circle cx="622.8941436215372" cy="49.0" r="4" fill="#2756a6"/><text x="626.8941436215372" y="40.0" fill="#2756a6" font-size="11">AB 6</text><polyline points="539.4144299608566,127.0 600.6213359437435,68.5 660.5044401297698,49.0" fill="none" stroke="#b45309" stroke-width="2"/><circle cx="539.4144299608566" cy="127.0" r="4" fill="#b45309"/><text x="543.4144299608566" y="144.0" fill="#b45309" font-size="11">PMCS 5</text><circle cx="600.6213359437435" cy="68.5" r="4" fill="#b45309"/><text x="604.6213359437435" y="85.5" fill="#b45309" font-size="11">PMCS 15</text><circle cx="660.5044401297698" cy="49.0" r="4" fill="#b45309"/><text x="664.5044401297698" y="66.0" fill="#b45309" font-size="11">PMCS 45</text><text x="629.0" y="288" text-anchor="middle">Thời gian trung bình (ms/nước, trục log)</text></g></svg></div>
+<details><summary>Mã Python [9]</summary><pre>from statistics import mean
+
+
+# Cấu hình được chọn sau khi đo thử trên các trạng thái ngẫu nhiên chưa kết thúc.
+depth, samples = 4, 15
+pilot_rng = Random(902)
+pilot = []
+for plies in (4, 8, 12, 16, 20, 24):
+    board, player = empty_board(), 1
+    for _ in range(plies):
+        available = actions(board)
+        if not available:
+            break
+        board = result(board, player, pilot_rng.choice(available))
+        player = -player
+    if not terminal(board):
+        pilot.append((board, player))
+
+pilot_ab = mean(MinimaxAgent(ordered=True, cutoff=depth).search(b, p).ms for b, p in pilot)
+pilot_pmcs = mean(PMCSAgent(samples=samples, seed=11).search(b, p).ms for b, p in pilot)
+print(f&quot;{len(pilot)} bàn thử · AB {depth}: {pilot_ab:.3f} ms/nước · PMCS {samples}: {pilot_pmcs:.3f} ms/nước.&quot;)
+
+rng = Random(902)
+duel = {1: 0, 0: 0, -1: 0}
+ab_times, pmcs_times = [], []
+for opening in range(6):
+    board, player = from_columns((6, 7), [rng.randrange(7) for _ in range(4)])
+    for color in (1, -1):
+        ab_agent = MinimaxAgent(ordered=True, cutoff=depth)
+        pmcs_agent = PMCSAgent(samples=samples, seed=100 + opening)
+
+        def ab_move(board, player):
+            decision = ab_agent.search(board, player)
+            ab_times.append(decision.ms)
+            return decision.move
+
+        def pmcs_move(board, player):
+            decision = pmcs_agent.search(board, player)
+            pmcs_times.append(decision.ms)
+            return decision.move
+
+        red, yellow = (ab_move, pmcs_move) if color == 1 else (pmcs_move, ab_move)
+        value, _ = play(red, yellow, board, first=player)
+        duel[color * value] += 1
+print(f&quot;12 ván từ 6 khai cuộc, đổi màu sau mỗi ván cùng khai cuộc: {counts_text(duel)} theo góc nhìn AB.&quot;)
+print(f&quot;Trong đối đầu · AB: {mean(ab_times):.3f} ms/nước · PMCS: {mean(pmcs_times):.3f} ms/nước.&quot;)</pre></details>
+<pre class="output">6 bàn thử · AB 4: 1.927 ms/nước · PMCS 15: 2.436 ms/nước.
+12 ván từ 6 khai cuộc, đổi màu sau mỗi ván cùng khai cuộc: 9 thắng, 1 hòa, 2 thua theo góc nhìn AB.
+Trong đối đầu · AB: 3.983 ms/nước · PMCS: 3.044 ms/nước.
+</pre>
+<p>Biểu đồ cho thấy độ chính xác chiến thuật và thời gian trên cùng bộ bàn. Cả ba độ sâu Alpha-Beta đều đạt 100% vì bộ kiểm tra chỉ yêu cầu nhìn một nước thắng hoặc hai lượt để thấy phản công. Tăng độ sâu trên bộ này làm tăng thời gian mà không đổi độ chính xác. Với PMCS, tăng số playout cải thiện độ chính xác ở cả hai giai đoạn. Cuối ván, số ô trống giảm nên các playout thường ngắn hơn.</p>
+<p>Chọn Alpha-Beta cutoff 4 và PMCS N = 15 sau khi đo thử chi phí chọn nước. Trong đối đầu, Alpha-Beta thắng 9 ván, hòa 1 và thua 2. So sánh dùng 6 khai cuộc với hai cách phân màu. Chi phí mỗi nước thực tế thay đổi theo số cột mở, số ô trống và tỷ lệ cắt tỉa. Kết quả đối đầu đo trực tiếp khả năng chơi ở các khai cuộc này, còn tỷ lệ đúng trên đồ thị đo nhận diện thắng và chặn trong một lượt.</p></main></body></html>

@@ -12,6 +12,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m scripts.quick_match random random -n 20
 .\.venv\Scripts\python.exe -m scripts.quick_match alphabeta heuristic -n 20 --seed 0
+.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
 ```
 
 Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
@@ -41,6 +42,25 @@ Kiểm tra thực tế trên nhánh này (15/11/2026, Python 3.15.1, NumPy 2.5.4
 
 Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cập nhật sau khi nhóm review và merge.
 
+## Arena round-robin và tích hợp (Thành viên 3)
+
+Module `arena/round_robin.py` chạy đấu vòng tròn giữa các agent trong registry (mặc định đủ 4 bot `random`, `heuristic`, `alphabeta`, `mcts` với 6 cặp × 2 ván đổi bên X/O cùng seed khai cuộc = 12 ván), ghi log JSONL qua `JsonlLogger` vào `logs/<run>.jsonl` và in bảng tổng hợp thắng/hòa/thua cùng thời gian trung bình mỗi nước do agent chọn:
+
+```powershell
+.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
+.\.venv\Scripts\python.exe -m arena.round_robin --simulations 50 --depth 2 --seed 0 --run smoke_rr
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Kết quả chạy `arena.round_robin --seed 0` với cấu hình mặc định (`depth=3`, `simulations=400`, `c=1.4`, `opening_moves=2`, 12 bản ghi trong `logs/round_robin.jsonl`):
+
+| Agent | Thắng | Hòa | Thua | Thời gian/nước (s) |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0 | 0 | 6 | 0.000016 |
+| `heuristic` | 5 | 0 | 1 | 0.001572 |
+| `alphabeta` | 5 | 0 | 1 | 0.062580 |
+| `mcts` | 2 | 0 | 4 | 0.068258 |
+
 ## Tiến độ các level
 
 | Level | Agent | Trạng thái |
@@ -48,7 +68,7 @@ Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cậ
 | 1 | Random | Đã có, tên registry là `random` |
 | 2 | Heuristic / Rule-based | Đã có, tên registry là `heuristic` |
 | 3 | Minimax + Alpha-Beta | Đã có, tên registry là `alphabeta` |
-| 4 | MCTS / UCT | Cần triển khai trong mốc hiện tại |
+| 4 | MCTS / UCT | Đã có, tên registry là `mcts` |
 | 5 | CNN policy (+value), học có giám sát | Kế hoạch sau mốc hiện tại |
 | 6 | Reinforcement Learning (self-play) | Kế hoạch sau mốc hiện tại |
 | 7 | AlphaGo-inspired | Khuyến khích |

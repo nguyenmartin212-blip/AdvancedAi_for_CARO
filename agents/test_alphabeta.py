@@ -95,3 +95,22 @@ def test_matches_exhaustive_minimax_on_small_board():
         game.undo()
     chosen = make_agent("alphabeta", depth=5, seed=1).select_action(game)
     assert scores[chosen] == max(scores.values())
+
+
+def test_pruning_reduces_nodes_and_preserves_move_on_unshuffled_tree():
+    game = position((4, 4), (3, 4), (4, 3), (3, 3), (5, 3), (4, 5))
+    pruned = make_agent("alphabeta", depth=3, candidate_limit=10, use_pruning=True, use_ordering=False, seed=0)
+    unpruned = make_agent("alphabeta", depth=3, candidate_limit=10, use_pruning=False, use_ordering=False, seed=0)
+    act_pruned = pruned.select_action(game)
+    act_unpruned = unpruned.select_action(game)
+    assert act_pruned == act_unpruned
+    assert 0 < pruned.last_nodes < unpruned.last_nodes
+
+
+def test_ordering_further_reduces_nodes():
+    game = position((4, 4), (3, 4), (4, 3), (3, 3), (5, 3), (4, 5))
+    ordered = make_agent("alphabeta", depth=3, candidate_limit=10, use_pruning=True, use_ordering=True, seed=0)
+    unordered = make_agent("alphabeta", depth=3, candidate_limit=10, use_pruning=True, use_ordering=False, seed=0)
+    assert game.is_legal(ordered.select_action(game))
+    unordered.select_action(game)
+    assert 0 < ordered.last_nodes < unordered.last_nodes

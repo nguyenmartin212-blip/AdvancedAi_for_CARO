@@ -20,7 +20,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m scripts.quick_match random random -n 20
 .\.venv\Scripts\python.exe -m scripts.quick_match alphabeta heuristic -n 20 --seed 0
-.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
+.\.venv\Scripts\python.exe -m arena.round_robin --agents random heuristic alphabeta mcts --seed 0
 ```
 
 Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
@@ -54,12 +54,12 @@ Module [arena/round_robin.py](arena/round_robin.py) tổ chức giải đấu v�
 
 ```powershell
 # Kiểm thử nhanh (12 ván) và bộ 71 unit/integration tests
-.\.venv\Scripts\python.exe -m arena.round_robin --seed 0 --matrix
+.\.venv\Scripts\python.exe -m arena.round_robin --agents random heuristic alphabeta mcts --seed 0 --matrix
 .\.venv\Scripts\python.exe -m pytest -q
 
 # Giải đấu chính thức 100 ván/cặp (600 ván/chế độ) cho báo cáo cuối kỳ
-.\.venv\Scripts\python.exe -m arena.round_robin -n 100 --budget-mode compute --seed 0 --matrix --run rr_compute_100
-.\.venv\Scripts\python.exe -m arena.round_robin -n 100 --budget-mode time --seconds-per-move 0.05 --seed 1000 --matrix --run rr_time_100
+.\.venv\Scripts\python.exe -m arena.round_robin --agents random heuristic alphabeta mcts -n 100 --budget-mode compute --seed 0 --matrix --run rr_compute_100
+.\.venv\Scripts\python.exe -m arena.round_robin --agents random heuristic alphabeta mcts -n 100 --budget-mode time --seconds-per-move 0.05 --seed 1000 --matrix --run rr_time_100
 ```
 
 Notebook [notebooks/analysis.ipynb](notebooks/analysis.ipynb) đọc trực tiếp `logs/*.jsonl` và xuất bảng tổng hợp cùng 3 bộ biểu đồ (`head_to_head_matrix.png`, `score_and_latency.png`, `side_advantage_and_length.png`) vào `notebooks/figures/`.
@@ -86,6 +86,22 @@ Notebook [notebooks/analysis.ipynb](notebooks/analysis.ipynb) đọc trực ti�
 
 - **Nhận xét bước đầu cho RQ1 & lợi thế đi trước:** Ở cùng mức chi phí thời gian thực tế (`~60–65 ms/nước`), `alphabeta` áp đảo `heuristic` (`91-2-7` ở `compute`, `89-4-7` ở `time`) và thắng tuyệt đối `mcts` thuần rollout ngẫu nhiên (`100-0-0`), do không gian 81 ô của bàn 9×9 làm nhiễu playout ngẫu nhiên khi chưa có heuristic/mạng học sâu dẫn hướng. Nhờ thiết kế đổi bên đối xứng cùng khai cuộc, tỷ lệ thắng tổng thể giữa X và O được cân bằng sát `50%` (`compute`: X thắng `50.2%`, O thắng `49.5%`, hòa `0.3%`; độ dài trung bình `14.9` nước/ván).
 
+## Ablation Tìm kiếm & Tác tử CNN Level 5 (Thành viên 1)
+
+Chạy kiểm chứng Ablation 1 cho Minimax/Alpha-Beta. Cài PyTorch CPU để thử checkpoint CNN đi kèm hoặc huấn luyện lại:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m scripts.ablation_search --positions 20 -n 40 --seed 0
+.\.venv\Scripts\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -X utf8 -m scripts.play_cli cnn --seed 0
+.\.venv\Scripts\python.exe -X utf8 -m train.train_cnn --games 450 --epochs 20 --seed 42
+.\.venv\Scripts\python.exe -X utf8 -m arena.round_robin --agents random heuristic alphabeta mcts cnn -n 20 --seed 0 --matrix --run rr_5agents_20
+```
+
+- **Ablation 1 (`scripts/ablation_search.py`, 20 thế trung cuộc và 40 ván/cặp).** Khi giữ cùng tập và thứ tự ứng viên, cắt tỉa Alpha-Beta giữ nguyên **20/20** lựa chọn và giảm **58,2%** số nút (1.110,0 xuống 464,0), từ 27,1 xuống 12,0 ms/nước. Cấu hình đầy đủ bật thêm ưu tiên chiến thuật và xếp hạng ứng viên. Cấu hình này duyệt trung bình 226,7 nút, mất 70,9 ms/nước và thắng 40/40 ván trước cấu hình tắt xếp hạng. Độ sâu 3 đạt điểm 0,5625 trước độ sâu 2 (13 thắng, 19 hòa, 8 thua).
+- **Huấn luyện CNN Level 5 (`train/train_cnn.py`, `checkpoints/cnn_9x9.pt`).** Sinh 450 ván với Alpha-Beta sâu 2, Heuristic và Random. Tách theo đơn vị ván (315 train, 67 validation, 68 test), loại 5.425 trạng thái trùng theo bàn cờ và bên sắp đi, rồi áp dụng 8 phép đối xứng D4 cho tập train để có 73.496 mẫu. Checkpoint ở epoch 9 (~415 KiB) được chọn theo `val_loss` và đạt 37,93% top-1, 59,57% top-3, value MSE 0,2071 trên tập test.
+- **Đối kháng 5 agent (200 ván, 20 ván/cặp, seed 0).** CNN dùng mạng policy–value và che nước đi bất hợp lệ. CNN thắng 20/20 ván trước Random và 20/20 trước MCTS (400 mô phỏng), thắng 10 và thua 10 trước Heuristic, hòa 1 và thua 19 trước Alpha-Beta.
+
 ## Tiến độ các level
 
 | Level | Agent | Trạng thái |
@@ -94,7 +110,7 @@ Notebook [notebooks/analysis.ipynb](notebooks/analysis.ipynb) đọc trực ti�
 | 2 | Heuristic / Rule-based | Đã có, tên registry là `heuristic` |
 | 3 | Minimax + Alpha-Beta | Đã có, tên registry là `alphabeta` |
 | 4 | MCTS / UCT | Đã có, tên registry là `mcts` |
-| 5 | CNN policy (+value), học có giám sát | Bắt buộc tối thiểu 01 agent ở Level 5 hoặc 6 |
+| 5 | CNN policy (+value), học có giám sát | Đã có, tên registry là `cnn` (`checkpoints/cnn_9x9.pt`) |
 | 6 | Reinforcement Learning (self-play) | Bắt buộc tối thiểu 01 agent ở Level 5 hoặc 6 (khuyến khích làm cả 5 và 6) |
 | 7 | AlphaGo-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
 | 8 | AlphaZero-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
@@ -146,7 +162,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 Đối chiếu trạng thái repo hiện tại với đề cương `TTNTNC_De_tai_cuoi_ky_Game_AI.pdf`, sách *AlphaGo Simplified* (Mark Liu) và quy định nộp bài của giảng viên, các nghiệp vụ **chưa hoàn thiện** cần triển khai tiếp gồm:
 
 1. **Bài toán & Câu hỏi nghiên cứu:** Phát biểu rõ tối thiểu 02 câu hỏi nghiên cứu định lượng (ví dụ: *RQ1 — Trong cùng ngân sách thời gian suy nghĩ mỗi nước trên bàn 9×9, MCTS/UCT có vượt Alpha-Beta không? RQ2 — Tác tử học được từ dữ liệu/tự chơi cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi kết hợp MCTS?*) và phân tích không gian trạng thái Caro 9×9.
-2. **Tác tử học được (Bắt buộc):** Thư mục `train/` và `checkpoints/` hiện đang rỗng; bắt buộc hoàn thiện ít nhất **01 tác tử học thực sự** ở Level 5 (CNN Supervised) hoặc Level 6 (RL Self-play), có tách `train/val/test` theo ván, có đường cong học tập và trọng số đã huấn luyện.
+2. **Tác tử học được (Bắt buộc):** CNN Level 5 đã có pipeline, checkpoint đã huấn luyện và kết quả trên tập test tách theo ván. Bổ sung đường cong học từ log huấn luyện vào notebook báo cáo cuối kỳ.
 3. **Đánh giá công bằng & Ablation (Bắt buộc):** Nâng giải đấu từ 12 ván smoke test lên **≥ 100 ván/cặp** (khuyến nghị 200 ván/cặp), đo đủ **02 chế độ ngân sách** (`compute` mặc định và `time` cùng giây/nước), bổ sung `score = (thắng + 0.5 × hòa) / tổng_ván`, độ trễ `p95`, số nút duyệt (`nodes`) / số mô phỏng (`simulations`), khoảng tin cậy 95% (Wilson/Bootstrap) và **tối thiểu 02 nghiên cứu cắt giảm/độ nhạy (ablation/sensitivity)**.
 4. **Giao diện đồ họa & Học liệu nộp:** Thư mục `ui/` và `notebooks/` đang rỗng; cần hoàn thiện giao diện Pygame (Người–Máy và Máy–Máy, chọn cấp độ AI), notebook sinh bảng/biểu đồ từ log, video demo, báo cáo 5 chương (bản mềm + 01 bản in), slide, poster và lịch sử GitHub minh bạch.
 
@@ -156,7 +172,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
   - Trong `agents/heuristic.py`: Tài liệu hóa rõ thứ tự ưu tiên luật, xử lý xung đột luật và phân tích các thế tấn công đôi (open-three / open-four) hoặc nước đi mở đường thua sau 2 bước (tương tự cơ chế chặn/tránh ở Liu Ch. 3).
   - Trong `agents/alphabeta.py`: Bổ sung bộ đếm `last_nodes` (số nút duyệt mỗi nước) và tham số `use_pruning: bool = True`, `use_ordering: bool = True` để thực hiện **Ablation 1**: so sánh Minimax không cắt tỉa với Alpha-Beta có cắt tỉa (kiểm chứng chọn cùng nước tối ưu nhưng giảm số nút và thời gian như Liu Ch. 6), đồng thời khảo sát `depth=2` vs. `depth=3`.
 - **PR 4 — `feat/cnn` (Bắt buộc phạm vi học máy — Level 5 theo Liu Ch. 9–11 & Ch. 15).**
-  - Tạo pipeline trong `train/` sinh dữ liệu tự động từ các ván đấu hợp lệ kết hợp `alphabeta` và `mcts` trên tensor `Gomoku.encode()` kích thước `(3, 9, 9)` (tham khảo cách lấy nước đi chuyên gia/bên thắng ở Liu Ch. 11). Ghi rõ số ván, cách gán nhãn policy (+nhánh value ước lượng `P(thắng) - P(thua) ∈ [-1, 1]` theo Liu Ch. 15 nếu dùng), khử trùng lặp trạng thái và **chia `train/validation/test` theo đơn vị ván cờ** (tuyệt đối không rò rỉ các nước của cùng một ván sang hai tập và không dùng tập đánh giá cuối để chọn siêu tham số).
+  - Pipeline trong `train/` dùng Alpha-Beta độ sâu 2 để gán nhãn nước đi chuyên gia cho tensor `Gomoku.encode()` kích thước `(3, 9, 9)`. Các ván sinh dữ liệu ghép Alpha-Beta với Alpha-Beta, Heuristic hoặc Random. Nhánh value dùng kết quả ván theo góc nhìn bên sắp đi. Pipeline chia `train/validation/test` theo ván trước khi khử các trạng thái trùng và dùng validation để chọn checkpoint.
   - Huấn luyện mạng CNN bằng PyTorch, che mặt nạ các ô không hợp lệ (`legal_actions` mask) khi suy luận để đảm bảo không sinh nước đi lỗi, lưu lịch sử loss/accuracy theo epoch vào `logs/`, lưu trọng số đã train vào `checkpoints/` (< 50 MB hoặc kèm link tải), khai báo CPU/GPU và thời gian train.
   - Tạo `agents/cnn.py` + `agents/test_cnn.py`, đăng ký tên `cnn` trong `agents/registry.py` (kèm kiểm thử hợp lệ, thắng/chặn cơ bản, thắng Random).
 - **Báo cáo & Học liệu phụ trách:** Viết Chương 2 (Heuristic, Minimax/Alpha-Beta, CNN), Chương 3 (biểu diễn trạng thái, thiết kế Level 2, 3, 5, quy trình sinh dữ liệu & huấn luyện) và nội dung kỹ thuật cho Poster.

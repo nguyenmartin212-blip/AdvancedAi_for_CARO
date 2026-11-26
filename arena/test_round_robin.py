@@ -1,13 +1,23 @@
 from __future__ import annotations
 
 import json
+import math
 import pytest
 
 import agents.registry as registry_mod
 from agents.registry import available, make_agent
 from arena import round_robin
 from arena.play import play_game
-from arena.round_robin import format_summary, main, run_round_robin, summarize
+from arena.round_robin import (
+    format_matrix,
+    format_summary,
+    head_to_head,
+    main,
+    run_round_robin,
+    side_advantage,
+    summarize,
+    wilson_ci,
+)
 
 REQUIRED_FIELDS = {
     "run",
@@ -168,4 +178,58 @@ def test_multiple_runs_append_to_log(tmp_path):
     run_round_robin(["random", "heuristic"], games_per_pair=2, seed=10, run_name="multi", log_dir=tmp_path)
     lines = (tmp_path / "multi.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 4
+
+
+def test_metrics_wilson_p95_head_to_head_and_log_roundtrip(tmp_path):
+    records, summary = run_round_robin(
+        ["random", "heuristic", "mcts"],
+        games_per_pair=4,
+        seed=2,
+        budget_mode="compute",
+        agent_overrides={"mcts": {"simulations": 8}},
+        run_name="metrics_rr",
+        log_dir=tmp_path,
+    )
+    logged = [json.loads(line) for line in (tmp_path / "metrics_rr.jsonl").read_text(encoding="utf-8").splitlines()]
+    from_log = summarize(logged, agent_names=["random", "heuristic", "mcts"])
+
+    for bot in ("random", "heuristic", "mcts"):
+        s = summary[bot]
+        assert 0.0 <= s["ci_low"] <= s["score"] <= s["ci_high"] <= 1.0
+        assert s["p95_time"] >= s["time_per_move"] >= 0.0 or math.isclose(s["p95_time"], s["time_per_move"])
+        assert math.isclose(s["score"], from_log[bot]["score"])
+        assert math.isclose(s["time_per_move"], from_log[bot]["time_per_move"], abs_tol=1e-5)
+        assert math.isclose(s["p95_time"], from_log[bot]["p95_time"], abs_tol=1e-5)
+    assert summary["mcts"]["work_per_move"] == pytest.approx(8.0)
+
+    h2h = head_to_head(logged, ["random", "heuristic", "mcts"])
+    assert h2h["heuristic"]["random"]["games"] == 4
+    assert math.isclose(h2h["heuristic"]["random"]["score"] + h2h["random"]["heuristic"]["score"], 1.0)
+    assert "heuristic" in format_matrix(h2h)
+    adv = side_advantage(logged)
+    assert adv["games"] == 12
+    assert adv["x_wins"] + adv["o_wins"] + adv["draws"] == 12
+    lo, hi = wilson_ci(1.0, 100)
+    assert 0.95 < lo < 1.0 and hi == pytest.approx(1.0)
+
+
+def test_time_budget_mode_and_invalid_seconds(tmp_path, capsys):
+    main([
+        "--agents", "random", "alphabeta", "mcts",
+        "-n", "2",
+        "--budget-mode", "time",
+        "--seconds-per-move", "0.02",
+        "--matrix",
+        "--run", "time_rr",
+        "--log-dir", str(tmp_path),
+    ])
+    out = capsys.readouterr().out
+    assert "Ma trận đối đầu" in out and "Lợi thế lượt đi" in out
+    rec = json.loads((tmp_path / "time_rr.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    assert rec["budget_mode"] == "time"
+    assert rec["seconds_per_move"] == pytest.approx(0.02)
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--agents", "random", "heuristic", "--budget-mode", "time", "--seconds-per-move", "0", "--log-dir", str(tmp_path)])
+    assert exc.value.code == 2
 

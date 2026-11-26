@@ -10,6 +10,7 @@ does not break the other agents.
 """
 from __future__ import annotations
 
+import inspect
 from typing import Callable
 
 from agents.base import Agent, RandomAgent
@@ -34,6 +35,14 @@ def make_agent(name: str, **params) -> Agent:
 
 def available() -> list[str]:
     return sorted(_REGISTRY)
+
+
+def accepts_param(name: str, param: str) -> bool:
+    if name not in _REGISTRY:
+        raise KeyError(f"Unknown agent '{name}'. Available: {sorted(_REGISTRY)}")
+    sig = inspect.signature(_REGISTRY[name])
+    p = sig.parameters.get(param)
+    return p is not None and p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)
 
 
 @register("random")

@@ -2,6 +2,14 @@
 
 Đồ án cuối kỳ *Trí tuệ nhân tạo nâng cao*. Nhóm xây dựng và so sánh các agent chơi Gomoku 9×9. Bàn cờ dùng luật freestyle. Từ 5 quân liên tiếp theo hàng, cột hoặc đường chéo là thắng. Bàn đầy mà chưa có bên thắng thì hòa.
 
+## Mô hình hóa bài toán & Câu hỏi nghiên cứu
+
+- **Tính chất môi trường:** Gomoku 9×9 freestyle (`k = 5`, chấp nhận chuỗi ≥ 5) là trò chơi hai người chơi luân phiên (`X = +1` đi trước, `O = -1` đi sau), **quan sát đầy đủ**, **xác định**, **tổng bằng không** và **hữu hạn** (tối đa 81 nước; cận trên không gian cấu hình `3^81 ≈ 4.43 × 10^38`, hệ số rẽ nhánh đầu ván là 81).
+- **Trạng thái, hành động & phần thưởng:** Trạng thái lưu bằng lưới `board[9, 9] ∈ {-1, 0, 1}` cùng người sắp đi `player ∈ {+1, -1}` (hoặc tensor bất biến lượt đi `encode()` kích thước `(3, 9, 9)`). Hành động hợp lệ `a = 9r + c ∈ [0, 80]` tại các ô trống; phần thưởng cuối ván từ góc nhìn người chơi là `+1` (thắng), `-1` (thua), `0` (hòa).
+- **Câu hỏi nghiên cứu trọng tâm:**
+  - **RQ1:** Trên bàn Caro 9×9, trong cùng ngân sách thời gian suy nghĩ mỗi nước (`~50–65 ms/nước`), MCTS/UCT với rollout ngẫu nhiên có vượt Minimax + Alpha-Beta dùng hàm lượng giá cửa sổ `4^n` hay không?
+  - **RQ2:** Tác tử học từ dữ liệu/tự chơi (Level 5 CNN / Level 6 RL) cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi tích hợp dẫn hướng cho cây MCTS?
+
 ## Chạy bản hiện tại
 
 Cần Python 3.10 trở lên. Mở PowerShell tại thư mục gốc của repo rồi chạy:
@@ -40,26 +48,43 @@ Kiểm tra thực tế trên nhánh này (15/11/2026, Python 3.15.1, NumPy 2.5.4
 - Lệnh `quick_match` ở trên: **MCTS thắng 12, thua 0, hòa 0** trước Random; 400 mô phỏng/nước, `c=1.4`, seed gốc 0, đổi bên từng ván và 2 nước khai cuộc ngẫu nhiên theo runner hiện có. Đây là mẫu kiểm tra nhỏ, chưa phải đánh giá sức mạnh tổng quát.
 - Chạy `scripts.play_cli random --seed 0` qua đầu vào terminal đã chuẩn bị: kết thúc sau 9 nước, người chơi X thắng; đã thử sai định dạng, tọa độ âm/ngoài bàn và ô đã có quân.
 
-Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cập nhật sau khi nhóm review và merge.
+## Arena đánh giá chuẩn & Notebook phân tích (Thành viên 3)
 
-## Arena round-robin và tích hợp (Thành viên 3)
-
-Module `arena/round_robin.py` chạy đấu vòng tròn giữa các agent trong registry (mặc định đủ 4 bot `random`, `heuristic`, `alphabeta`, `mcts` với 6 cặp × 2 ván đổi bên X/O cùng seed khai cuộc = 12 ván), ghi log JSONL qua `JsonlLogger` vào `logs/<run>.jsonl` và in bảng tổng hợp thắng/hòa/thua cùng thời gian trung bình mỗi nước do agent chọn:
+Module [arena/round_robin.py](arena/round_robin.py) tổ chức giải đấu vòng tròn đổi bên đối xứng (cùng `seed` khai cuộc cho 2 lượt cầm X/O của mỗi cặp), hỗ trợ cả hai chế độ ngân sách **`compute`** (cấu hình mặc định minh bạch) và **`time`** (cùng giới hạn giây/nước), ghi log JSONL chi tiết ra `logs/<run>.jsonl`, đồng thời tổng hợp `score = (thắng + 0.5 × hòa) / số_ván`, khoảng tin cậy **Wilson 95%**, thời gian trung bình/nước, độ trễ **P95**, số `nodes`/`simulations`, ma trận đối đầu và thống kê lợi thế đi trước:
 
 ```powershell
-.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
-.\.venv\Scripts\python.exe -m arena.round_robin --simulations 50 --depth 2 --seed 0 --run smoke_rr
+# Kiểm thử nhanh (12 ván) và bộ 71 unit/integration tests
+.\.venv\Scripts\python.exe -m arena.round_robin --seed 0 --matrix
 .\.venv\Scripts\python.exe -m pytest -q
+
+# Giải đấu chính thức 100 ván/cặp (600 ván/chế độ) cho báo cáo cuối kỳ
+.\.venv\Scripts\python.exe -m arena.round_robin -n 100 --budget-mode compute --seed 0 --matrix --run rr_compute_100
+.\.venv\Scripts\python.exe -m arena.round_robin -n 100 --budget-mode time --seconds-per-move 0.05 --seed 1000 --matrix --run rr_time_100
 ```
 
-Kết quả chạy `arena.round_robin --seed 0` với cấu hình mặc định (`depth=3`, `simulations=400`, `c=1.4`, `opening_moves=2`, 12 bản ghi trong `logs/round_robin.jsonl`):
+Notebook [notebooks/analysis.ipynb](notebooks/analysis.ipynb) đọc trực tiếp `logs/*.jsonl` và xuất bảng tổng hợp cùng 3 bộ biểu đồ (`head_to_head_matrix.png`, `score_and_latency.png`, `side_advantage_and_length.png`) vào `notebooks/figures/`.
 
-| Agent | Thắng | Hòa | Thua | Thời gian/nước (s) |
-| --- | ---: | ---: | ---: | ---: |
-| `random` | 0 | 0 | 6 | 0.000016 |
-| `heuristic` | 5 | 0 | 1 | 0.001572 |
-| `alphabeta` | 5 | 0 | 1 | 0.062580 |
-| `mcts` | 2 | 0 | 4 | 0.068258 |
+### Kết quả thực nghiệm 1.200 ván (4 agent Level 1–4, `opening_moves=2`)
+
+1. **Chế độ `compute`** (`-n 100`, `--seed 0`, 600 ván; `alphabeta depth=3`, `mcts simulations=400, c=1.4`):
+
+| Agent | Thắng | Hòa | Thua | Điểm (`score`) | CI 95% (Wilson) | Thời gian/nước (s) | P95 (s) | Nodes/Sims |
+| --- | ---: | ---: | ---: | ---: | :---: | ---: | ---: | ---: |
+| `alphabeta` | 291 | 2 | 7 | 0.973 | `[0.95, 0.99]` | 0.064807 | 0.141135 | — |
+| `heuristic` | 207 | 2 | 91 | 0.693 | `[0.64, 0.74]` | 0.001579 | 0.003748 | — |
+| `mcts` | 100 | 0 | 200 | 0.333 | `[0.28, 0.39]` | 0.057916 | 0.099276 | 400.0 |
+| `random` | 0 | 0 | 300 | 0.000 | `[0.00, 0.01]` | 0.000012 | 0.000028 | — |
+
+2. **Chế độ `time`** (`-n 100`, `--seconds-per-move 0.05`, `--seed 1000`, 600 ván; tự hiệu chuẩn `alphabeta depth=3`, `mcts simulations=385`):
+
+| Agent | Thắng | Hòa | Thua | Điểm (`score`) | CI 95% (Wilson) | Thời gian/nước (s) | P95 (s) | Nodes/Sims |
+| --- | ---: | ---: | ---: | ---: | :---: | ---: | ---: | ---: |
+| `alphabeta` | 289 | 4 | 7 | 0.970 | `[0.94, 0.98]` | 0.064053 | 0.139398 | — |
+| `heuristic` | 206 | 4 | 90 | 0.693 | `[0.64, 0.74]` | 0.001561 | 0.003492 | — |
+| `mcts` | 101 | 0 | 199 | 0.337 | `[0.29, 0.39]` | 0.059713 | 0.096828 | 385.0 |
+| `random` | 0 | 0 | 300 | 0.000 | `[0.00, 0.01]` | 0.000012 | 0.000027 | — |
+
+- **Nhận xét bước đầu cho RQ1 & lợi thế đi trước:** Ở cùng mức chi phí thời gian thực tế (`~60–65 ms/nước`), `alphabeta` áp đảo `heuristic` (`91-2-7` ở `compute`, `89-4-7` ở `time`) và thắng tuyệt đối `mcts` thuần rollout ngẫu nhiên (`100-0-0`), do không gian 81 ô của bàn 9×9 làm nhiễu playout ngẫu nhiên khi chưa có heuristic/mạng học sâu dẫn hướng. Nhờ thiết kế đổi bên đối xứng cùng khai cuộc, tỷ lệ thắng tổng thể giữa X và O được cân bằng sát `50%` (`compute`: X thắng `50.2%`, O thắng `49.5%`, hòa `0.3%`; độ dài trung bình `14.9` nước/ván).
 
 ## Tiến độ các level
 
@@ -152,14 +177,10 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 
 ### Thành viên 3 · Giải đấu chuẩn cuối kỳ, Notebook Phân tích, Quản trị GitHub & Hồ sơ nộp
 
-- **PR 2 — Merge `feat/arena` & `feat/eval-suite` (Chuẩn hóa đánh giá theo Mục 3.5–3.6).**
-  - Review và merge nhánh `feat/arena` hiện có vào `main`; đồng bộ lại số lượng test và bảng tiến độ trên `main`.
-  - Nâng cấp `arena/round_robin.py`:
-    - Hỗ trợ chạy giải đấu quy mô đầy đủ **≥ 100 ván/cặp** (khuyến nghị **200 ván/cặp**), chia đều 50% ván đi trước (X) và 50% ván đi sau (O) trên cùng thế cờ mở đầu theo nhiều `seed`.
-    - Thực thi đầy đủ **02 chế độ ngân sách**: `compute` (theo cấu hình mặc định minh bạch) và `time` (áp cùng giới hạn giây/nước cho các tác tử tìm kiếm/học máy; hỗ trợ truyền `time_limit` hoặc cutoff tương ứng).
-    - Mở rộng bản ghi log & bảng tổng hợp gồm: Thắng/Hòa/Thua, **`score = (wins + 0.5 * draws) / games`**, thời gian trung bình/nước **tách riêng từng agent**, **độ trễ `p95`**, trung bình **`nodes` / `simulations`**, RAM/VRAM (nếu chạy mạng nơ-ron) và **khoảng tin cậy 95% (Wilson hoặc Bootstrap)**.
-- **PR 3 — `feat/notebooks` (Phân tích thực nghiệm & Trực quan hóa).**
-  - Tạo các Jupyter Notebook trong `notebooks/` đọc trực tiếp dữ liệu từ `logs/*.jsonl` để sinh toàn bộ bảng biểu cho báo cáo/slide/poster: ma trận đối đầu (head-to-head heatmap), bảng điểm kèm khoảng tin cậy 95%, thống kê lợi thế đi trước (first-player advantage của quân X), đường cong huấn luyện Level 5/6 và biểu đồ 02+ thí nghiệm ablation.
+- **PR 2 — `feat/eval-suite` (Đã triển khai cho 4 agent Level 1–4; chạy lại khi gộp Level 5–7).**
+  - Đã merge `feat/arena` vào `main` (PR #7) và nâng cấp `arena/round_robin.py`: hỗ trợ giải đấu **≥ 100 ván/cặp** ở cả 2 chế độ `compute` và `time`, tính `score`, khoảng tin cậy **Wilson 95%**, thời gian trung bình & **P95** tách riêng từng agent, thống kê `nodes`/`simulations` (tự động nhận `last_nodes`/`last_simulations`/`time_limit` khi TV1 và TV2 hợp nhất PR), ma trận đối đầu (`--matrix`) và thống kê lợi thế đi trước.
+- **PR 3 — `feat/notebooks` (Đã khởi tạo & xuất biểu đồ cho Level 1–4; mở rộng khi có log train/ablation).**
+  - Đã tạo [notebooks/analysis.ipynb](notebooks/analysis.ipynb) và bộ hình minh họa trong `notebooks/figures/` từ 1.200 ván thực nghiệm (`rr_compute_100.jsonl`, `rr_time_100.jsonl`); bổ sung thêm biểu đồ đường cong huấn luyện Level 5/6 và 02+ ablation ngay khi TV1, TV2 hoàn tất.
 - **Quản trị GitHub, Kiểm định tái lập & Tổng hợp hồ sơ nộp (Nhóm trưởng/Điều phối).**
   - Mở đầy đủ **GitHub Issues / Projects** gắn nhãn và phân công cho từng PR của 3 thành viên; duy trì lịch sử commit đều đặn hàng tuần và kiểm tra **GitHub Insights** (không dồn code lên sát hạn nộp).
   - Kiểm thử chạy lại toàn bộ dự án trên môi trường ảo sạch từ đầu theo đúng `README.md` (cài gói → `pytest` → sinh dữ liệu/train mẫu hoặc nạp checkpoint → chạy round-robin → mở CLI & Pygame).

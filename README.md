@@ -12,6 +12,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m scripts.quick_match random random -n 20
 .\.venv\Scripts\python.exe -m scripts.quick_match alphabeta heuristic -n 20 --seed 0
+.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
 ```
 
 Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
@@ -41,6 +42,25 @@ Kiểm tra thực tế trên nhánh này (15/11/2026, Python 3.15.1, NumPy 2.5.4
 
 Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cập nhật sau khi nhóm review và merge.
 
+## Arena round-robin và tích hợp (Thành viên 3)
+
+Module `arena/round_robin.py` chạy đấu vòng tròn giữa các agent trong registry (mặc định đủ 4 bot `random`, `heuristic`, `alphabeta`, `mcts` với 6 cặp × 2 ván đổi bên X/O cùng seed khai cuộc = 12 ván), ghi log JSONL qua `JsonlLogger` vào `logs/<run>.jsonl` và in bảng tổng hợp thắng/hòa/thua cùng thời gian trung bình mỗi nước do agent chọn:
+
+```powershell
+.\.venv\Scripts\python.exe -m arena.round_robin --seed 0
+.\.venv\Scripts\python.exe -m arena.round_robin --simulations 50 --depth 2 --seed 0 --run smoke_rr
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Kết quả chạy `arena.round_robin --seed 0` với cấu hình mặc định (`depth=3`, `simulations=400`, `c=1.4`, `opening_moves=2`, 12 bản ghi trong `logs/round_robin.jsonl`):
+
+| Agent | Thắng | Hòa | Thua | Thời gian/nước (s) |
+| --- | ---: | ---: | ---: | ---: |
+| `random` | 0 | 0 | 6 | 0.000016 |
+| `heuristic` | 5 | 0 | 1 | 0.001572 |
+| `alphabeta` | 5 | 0 | 1 | 0.062580 |
+| `mcts` | 2 | 0 | 4 | 0.068258 |
+
 ## Tiến độ các level
 
 | Level | Agent | Trạng thái |
@@ -48,13 +68,25 @@ Trạng thái tích hợp trên `main` bên dưới được giữ nguyên; cậ
 | 1 | Random | Đã có, tên registry là `random` |
 | 2 | Heuristic / Rule-based | Đã có, tên registry là `heuristic` |
 | 3 | Minimax + Alpha-Beta | Đã có, tên registry là `alphabeta` |
-| 4 | MCTS / UCT | Cần triển khai trong mốc hiện tại |
-| 5 | CNN policy (+value), học có giám sát | Kế hoạch sau mốc hiện tại |
-| 6 | Reinforcement Learning (self-play) | Kế hoạch sau mốc hiện tại |
-| 7 | AlphaGo-inspired | Khuyến khích |
-| 8 | AlphaZero-inspired | Khuyến khích |
+| 4 | MCTS / UCT | Đã có, tên registry là `mcts` |
+| 5 | CNN policy (+value), học có giám sát | Bắt buộc tối thiểu 01 agent ở Level 5 hoặc 6 |
+| 6 | Reinforcement Learning (self-play) | Bắt buộc tối thiểu 01 agent ở Level 5 hoặc 6 (khuyến khích làm cả 5 và 6) |
+| 7 | AlphaGo-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
+| 8 | AlphaZero-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
 
-Level 7–8 áp dụng ý tưởng từ AlphaGo và AlphaZero ở quy mô đồ án. Sách *AlphaGo Simplified* của Mark Liu là tài liệu tham khảo thuật toán. Xem chương 2 cho luật thắng/chặn, chương 5–7 cho Minimax và Alpha-Beta, chương 8 cho MCTS/UCT.
+> **Lưu ý thuật ngữ:** Level 7–8 là phiên bản mô phỏng cảm hứng từ AlphaGo/AlphaZero ở quy mô bàn 9×9, cần ghi rõ các thành phần đã/chưa hiện thực và không dùng mạng chưa qua huấn luyện làm bằng chứng triển khai.
+
+Tài liệu tham khảo cốt lõi cho thiết kế thuật toán và thực nghiệm:
+
+- **Mark Liu**, *AlphaGo Simplified: Rule-Based AI and Deep Learning in Everyday Games* (CRC Press, 2024; file `Liu - Rule-Based AI Games.pdf` đính kèm gồm Phần I Ch. 1–8, mã nguồn Ch. 9–21 của sách tại `https://github.com/markhliu/AlphaGoSimplified`):
+  - **Ch. 1–3:** Tách môi trường không đồ họa (tăng tốc train/arena) và bản có cửa sổ đồ họa (demo); chiến lược nhìn trước 1–3 bước (thắng ngay, chặn `block`, tránh nước tự mở đường thua `to_avoid`, tạo tấn công đôi `double attack`).
+  - **Ch. 4–7:** Minimax đệ quy, cắt tỉa độ sâu, kiểm chứng thời gian tiết kiệm của Alpha-Beta và hàm lượng giá thế cờ `v(s) ∈ [-1, 1]` tại nút cắt độ sâu.
+  - **Ch. 8:** MCTS/UCT (`c ≈ 1.4`) với 4 pha Selection–Expansion–Simulation–Backpropagation và khảo sát số lượt mô phỏng.
+  - **Ch. 9–11:** Huấn luyện mạng CNN Policy có giám sát từ dữ liệu đối đầu chuyên gia (kết hợp MCTS và Minimax/Alpha-Beta).
+  - **Ch. 12–15:** Học tăng cường tự chơi (Self-play Policy Gradient tinh chỉnh từ Policy Network, vector hóa) và huấn luyện Value Network dự đoán `P(thắng) - P(thua) ∈ [-1, 1]`.
+  - **Ch. 16–21:** Tích hợp Policy/Value Network vào cây MCTS (AlphaGo-inspired) và mạng hai đầu Policy–Value + PUCT + đấu loại checkpoint (AlphaZero-inspired).
+- **Stuart Russell & Peter Norvig**, *Artificial Intelligence: A Modern Approach* (4th ed., 2021): Mô hình hóa tác tử thông minh và tìm kiếm đối kháng (Adversarial Search).
+- **Richard S. Sutton & Andrew G. Barto**, *Reinforcement Learning: An Introduction* (2nd ed., 2018): MDP, Monte Carlo, TD/Q-learning, Policy Gradient và tự chơi (Self-play).
 
 ## Phân công mốc hiện tại
 
@@ -84,6 +116,67 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 2. Merge Heuristic trước Alpha-Beta. MCTS, CLI và arena có thể merge độc lập khi test xanh. Mỗi PR của agent thêm dòng import module trong `agents/__init__.py` để factory được đăng ký. Khi cập nhật nhánh, giữ đủ các import đã merge.
 3. Sau khi đủ bốn bot, chạy lại toàn bộ test, chạy round-robin với cấu hình nhỏ và chơi một ván demo. Lưu lệnh và kết quả đã chạy vào PR tích hợp hoặc Issue tổng. Cập nhật trạng thái level trong README sau khi kiểm tra trên `main`.
 
+## Bổ sung nhiệm vụ giai đoạn hoàn thiện cuối kỳ (3 thành viên)
+
+Đối chiếu trạng thái repo hiện tại với đề cương `TTNTNC_De_tai_cuoi_ky_Game_AI.pdf`, sách *AlphaGo Simplified* (Mark Liu) và quy định nộp bài của giảng viên, các nghiệp vụ **chưa hoàn thiện** cần triển khai tiếp gồm:
+
+1. **Bài toán & Câu hỏi nghiên cứu:** Phát biểu rõ tối thiểu 02 câu hỏi nghiên cứu định lượng (ví dụ: *RQ1 — Trong cùng ngân sách thời gian suy nghĩ mỗi nước trên bàn 9×9, MCTS/UCT có vượt Alpha-Beta không? RQ2 — Tác tử học được từ dữ liệu/tự chơi cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi kết hợp MCTS?*) và phân tích không gian trạng thái Caro 9×9.
+2. **Tác tử học được (Bắt buộc):** Thư mục `train/` và `checkpoints/` hiện đang rỗng; bắt buộc hoàn thiện ít nhất **01 tác tử học thực sự** ở Level 5 (CNN Supervised) hoặc Level 6 (RL Self-play), có tách `train/val/test` theo ván, có đường cong học tập và trọng số đã huấn luyện.
+3. **Đánh giá công bằng & Ablation (Bắt buộc):** Nâng giải đấu từ 12 ván smoke test lên **≥ 100 ván/cặp** (khuyến nghị 200 ván/cặp), đo đủ **02 chế độ ngân sách** (`compute` mặc định và `time` cùng giây/nước), bổ sung `score = (thắng + 0.5 × hòa) / tổng_ván`, độ trễ `p95`, số nút duyệt (`nodes`) / số mô phỏng (`simulations`), khoảng tin cậy 95% (Wilson/Bootstrap) và **tối thiểu 02 nghiên cứu cắt giảm/độ nhạy (ablation/sensitivity)**.
+4. **Giao diện đồ họa & Học liệu nộp:** Thư mục `ui/` và `notebooks/` đang rỗng; cần hoàn thiện giao diện Pygame (Người–Máy và Máy–Máy, chọn cấp độ AI), notebook sinh bảng/biểu đồ từ log, video demo, báo cáo 5 chương (bản mềm + 01 bản in), slide, poster và lịch sử GitHub minh bạch.
+
+### Thành viên 1 · Tối ưu/Ablation Tìm kiếm & Tác tử CNN Học có giám sát (Level 5)
+
+- **PR 3 — `feat/ablation-search` (Hoàn thiện Level 2–3 theo Liu Ch. 2–7).**
+  - Trong `agents/heuristic.py`: Tài liệu hóa rõ thứ tự ưu tiên luật, xử lý xung đột luật và phân tích các thế tấn công đôi (open-three / open-four) hoặc nước đi mở đường thua sau 2 bước (tương tự cơ chế chặn/tránh ở Liu Ch. 3).
+  - Trong `agents/alphabeta.py`: Bổ sung bộ đếm `last_nodes` (số nút duyệt mỗi nước) và tham số `use_pruning: bool = True`, `use_ordering: bool = True` để thực hiện **Ablation 1**: so sánh Minimax không cắt tỉa với Alpha-Beta có cắt tỉa (kiểm chứng chọn cùng nước tối ưu nhưng giảm số nút và thời gian như Liu Ch. 6), đồng thời khảo sát `depth=2` vs. `depth=3`.
+- **PR 4 — `feat/cnn` (Bắt buộc phạm vi học máy — Level 5 theo Liu Ch. 9–11 & Ch. 15).**
+  - Tạo pipeline trong `train/` sinh dữ liệu tự động từ các ván đấu hợp lệ kết hợp `alphabeta` và `mcts` trên tensor `Gomoku.encode()` kích thước `(3, 9, 9)` (tham khảo cách lấy nước đi chuyên gia/bên thắng ở Liu Ch. 11). Ghi rõ số ván, cách gán nhãn policy (+nhánh value ước lượng `P(thắng) - P(thua) ∈ [-1, 1]` theo Liu Ch. 15 nếu dùng), khử trùng lặp trạng thái và **chia `train/validation/test` theo đơn vị ván cờ** (tuyệt đối không rò rỉ các nước của cùng một ván sang hai tập và không dùng tập đánh giá cuối để chọn siêu tham số).
+  - Huấn luyện mạng CNN bằng PyTorch, che mặt nạ các ô không hợp lệ (`legal_actions` mask) khi suy luận để đảm bảo không sinh nước đi lỗi, lưu lịch sử loss/accuracy theo epoch vào `logs/`, lưu trọng số đã train vào `checkpoints/` (< 50 MB hoặc kèm link tải), khai báo CPU/GPU và thời gian train.
+  - Tạo `agents/cnn.py` + `agents/test_cnn.py`, đăng ký tên `cnn` trong `agents/registry.py` (kèm kiểm thử hợp lệ, thắng/chặn cơ bản, thắng Random).
+- **Báo cáo & Học liệu phụ trách:** Viết Chương 2 (Heuristic, Minimax/Alpha-Beta, CNN), Chương 3 (biểu diễn trạng thái, thiết kế Level 2, 3, 5, quy trình sinh dữ liệu & huấn luyện) và nội dung kỹ thuật cho Poster.
+- **Nghiệm thu TV1:** Có bảng số liệu + biểu đồ Ablation 1 (bật/tắt cắt tỉa, depth 2 vs. 3); checkpoint `cnn` nạp chạy lại được từ lệnh mẫu, đạt kết quả thực nghiệm thật trước `random` và `heuristic`.
+
+### Thành viên 2 · MCTS theo thời gian, Giao diện Pygame, Video Demo & Mở rộng RL/MCTS-NN (Level 6–7)
+
+- **PR 3 — `feat/mcts-time` (Hoàn thiện Level 4 theo Liu Ch. 8).**
+  - Trong `agents/mcts.py`: Bổ sung tùy chọn ngân sách thời gian mỗi nước (`time_limit: float | None = None`) bên cạnh `simulations`, lưu lại số mô phỏng thực tế đã chạy (`last_simulations`) để so sánh công bằng với Alpha-Beta trong chế độ `budget_mode="time"`.
+  - Thực hiện **Ablation 2**: Khảo sát độ nhạy tỷ lệ thắng và độ trễ của MCTS theo ngân sách mô phỏng (`simulations` ∈ {100, 400, 1000, 2000}) và hằng số khám phá `c` ∈ {0.7, 1.4, 2.0}.
+- **PR 4 — `feat/ui` (Giao diện Demo Người–Máy & Máy–Máy).**
+  - Xây dựng `ui/pygame_app.py` (kèm kiểm thử khởi tạo/logic không phụ thuộc màn hình nếu cần): hỗ trợ trực quan cả hai chế độ **Người đấu Máy** và **Máy đấu Máy**, cho phép chọn cấp độ AI từ `registry` (`random`, `heuristic`, `alphabeta`, `mcts`, `cnn`, ...), chọn quân đi trước X/O, đánh dấu nước đi gần nhất, hiển thị thời gian suy nghĩ, thông báo thắng/thua/hòa và chơi ván mới.
+  - Quay **Video Demo** hoạt động thực tế của ứng dụng và chụp bộ ảnh minh họa giao diện + các thế cờ chiến thuật/lỗi điển hình của từng cấp AI.
+- **PR 5 (Khuyến khích nâng cao) — `feat/rl-mcts` (Level 6 Self-play RL hoặc Level 7–8 theo Liu Ch. 13–21).**
+  - Khởi tạo từ checkpoint `cnn` đã huấn luyện của TV1 rồi tinh chỉnh bằng **Self-play Policy Gradient** (theo hướng Liu Ch. 13–15 để tránh hội tụ chậm khi học từ đầu trên bàn 9×9), hoặc tích hợp Policy/Value Network dẫn hướng cây MCTS (AlphaGo-inspired — Liu Ch. 16–18) / mạng hai đầu Policy–Value + PUCT + đấu kiểm chứng với checkpoint cũ (AlphaZero-inspired — Liu Ch. 19–21). So sánh trực tiếp `policy-only` vs. `policy + MCTS`, lưu đường cong học tập và nêu rõ thành phần nào đã/chưa hiện thực so với hệ thống gốc.
+- **Báo cáo & Học liệu phụ trách:** Viết Chương 2 (MCTS/UCT, RL & AlphaGo/AlphaZero-inspired), Chương 3 (thiết kế Level 4, Level 6/7, giao diện CLI & Pygame), phụ trách chính Slide thuyết trình và kịch bản trình diễn trực tiếp.
+- **Nghiệm thu TV2:** Chế độ giới hạn giây/nước của MCTS hoạt động ổn định; có đủ số liệu Ablation 2; giao diện Pygame chọn được mọi cấp AI và có video demo hoàn chỉnh.
+
+### Thành viên 3 · Giải đấu chuẩn cuối kỳ, Notebook Phân tích, Quản trị GitHub & Hồ sơ nộp
+
+- **PR 2 — Merge `feat/arena` & `feat/eval-suite` (Chuẩn hóa đánh giá theo Mục 3.5–3.6).**
+  - Review và merge nhánh `feat/arena` hiện có vào `main`; đồng bộ lại số lượng test và bảng tiến độ trên `main`.
+  - Nâng cấp `arena/round_robin.py`:
+    - Hỗ trợ chạy giải đấu quy mô đầy đủ **≥ 100 ván/cặp** (khuyến nghị **200 ván/cặp**), chia đều 50% ván đi trước (X) và 50% ván đi sau (O) trên cùng thế cờ mở đầu theo nhiều `seed`.
+    - Thực thi đầy đủ **02 chế độ ngân sách**: `compute` (theo cấu hình mặc định minh bạch) và `time` (áp cùng giới hạn giây/nước cho các tác tử tìm kiếm/học máy; hỗ trợ truyền `time_limit` hoặc cutoff tương ứng).
+    - Mở rộng bản ghi log & bảng tổng hợp gồm: Thắng/Hòa/Thua, **`score = (wins + 0.5 * draws) / games`**, thời gian trung bình/nước **tách riêng từng agent**, **độ trễ `p95`**, trung bình **`nodes` / `simulations`**, RAM/VRAM (nếu chạy mạng nơ-ron) và **khoảng tin cậy 95% (Wilson hoặc Bootstrap)**.
+- **PR 3 — `feat/notebooks` (Phân tích thực nghiệm & Trực quan hóa).**
+  - Tạo các Jupyter Notebook trong `notebooks/` đọc trực tiếp dữ liệu từ `logs/*.jsonl` để sinh toàn bộ bảng biểu cho báo cáo/slide/poster: ma trận đối đầu (head-to-head heatmap), bảng điểm kèm khoảng tin cậy 95%, thống kê lợi thế đi trước (first-player advantage của quân X), đường cong huấn luyện Level 5/6 và biểu đồ 02+ thí nghiệm ablation.
+- **Quản trị GitHub, Kiểm định tái lập & Tổng hợp hồ sơ nộp (Nhóm trưởng/Điều phối).**
+  - Mở đầy đủ **GitHub Issues / Projects** gắn nhãn và phân công cho từng PR của 3 thành viên; duy trì lịch sử commit đều đặn hàng tuần và kiểm tra **GitHub Insights** (không dồn code lên sát hạn nộp).
+  - Kiểm thử chạy lại toàn bộ dự án trên môi trường ảo sạch từ đầu theo đúng `README.md` (cài gói → `pytest` → sinh dữ liệu/train mẫu hoặc nạp checkpoint → chạy round-robin → mở CLI & Pygame).
+  - Viết Chương 1 (giới thiệu, mô hình hóa bài toán, câu hỏi nghiên cứu), Chương 4 (tổng hợp kết quả thực nghiệm & thảo luận), Chương 5 (kết luận & hướng phát triển); kiểm tra trích dẫn học thuật; in ấn **01 cuốn báo cáo + slide + poster** và đóng gói file ZIP nộp bài.
+- **Nghiệm thu TV3:** Log thi đấu thô ≥ 100 ván/cặp ở cả 2 chế độ ngân sách khớp tuyệt đối với bảng/biểu đồ xuất từ `notebooks/`; toàn bộ sản phẩm trong checklist nộp bài chạy lại không lỗi.
+
+### Danh sách thành viên và tỷ lệ đóng góp (Cập nhật trước khi nộp)
+
+> Theo yêu cầu nộp bài của giảng viên, nhóm kê khai đầy đủ Họ tên, MSSV, nhiệm vụ, công việc thực tế và tỷ lệ đóng góp sao cho **tổng tỷ lệ đóng góp bằng đúng 100%** (lịch sử GitHub và kết quả thực hiện là căn cứ đối chiếu):
+
+| STT | Họ và tên | MSSV | Tài khoản GitHub | Nhiệm vụ & công việc thực hiện chính | Tỷ lệ đóng góp (%) |
+| :-: | --- | --- | --- | --- | --: |
+| 1 | *(Điền họ tên TV1)* | *(Điền MSSV)* | *(Điền username)* | Level 2 (`heuristic`), Level 3 (`alphabeta` + đếm nút & ablation cắt tỉa), Level 5 (`cnn` + sinh dữ liệu & huấn luyện), Chương 2–3 báo cáo & nội dung Poster | 33.4% |
+| 2 | *(Điền họ tên TV2)* | *(Điền MSSV)* | *(Điền username)* | Level 4 (`mcts` + giới hạn thời gian & ablation số mô phỏng), CLI (`play_cli`), Giao diện `ui/` (Pygame Người–Máy & Máy–Máy), Video demo, Level 6/7 (nếu mở rộng), Chương 2–3 & Slide | 33.3% |
+| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), `notebooks/` phân tích & biểu đồ, quản lý Issues/PR/GitHub, Chương 1, 4, 5 & đóng gói hồ sơ nộp | 33.3% |
+| **Tổng** | | | | **Toàn bộ các thành viên nắm rõ và giải thích được phần việc phụ trách** | **100%** |
+
 ## Quy ước triển khai
 
 - Bàn cờ dùng `board[r, c]`, với `0` là ô trống, `1` là X đi trước và `-1` là O. Action trên bàn 9×9 bằng `r` nhân 9 cộng `c`.
@@ -110,19 +203,37 @@ git push -u origin feat/heuristic
 
 Mở PR vào `main`, liên kết Issue bằng `Closes #<số issue>` và ghi lệnh kiểm thử đã chạy. Nhóm review ít nhất một người trước khi merge và giữ `main` ở trạng thái chạy được. Khi cập nhật `.gitignore`, thêm `.venv/` và `.env`. Log thô và checkpoint lớn được lưu riêng. README ghi đường dẫn lấy dữ liệu cần để tái chạy.
 
+Lưu ý bắt buộc theo quy định quản lý mã nguồn của giảng viên:
+
+- Cấu hình thống nhất `git config user.name` và `git config user.email` khớp tài khoản GitHub cá nhân để lịch sử commit và **GitHub Insights** phản ánh chính xác người thực hiện, nội dung và tiến độ.
+- Cập nhật thường xuyên mã nguồn, notebook (`notebooks/`) và tài liệu xuyên suốt quá trình làm đồ án; **không dồn toàn bộ mã nguồn lên GitHub vào sát ngày nộp**.
+- Khai thác đầy đủ `README.md`, **Issues/Projects**, **Branch/Pull Request** và **GitHub Insights** để quản lý công việc và minh chứng đóng góp.
+
 ## Cấu trúc thư mục
 
 | Thư mục | Nội dung |
 | --- | --- |
 | `game/` | Engine Gomoku và test |
 | `agents/` | Giao diện Agent, registry và các bot |
-| `arena/` | Chạy một ván, sau đó mở rộng sang round-robin |
+| `arena/` | Chạy một ván và giải đấu vòng tròn `round-robin` |
 | `scripts/` | Lệnh chạy thử và demo terminal |
 | `configs/`, `utils/` | Cấu hình, seed và logger JSONL |
-| `train/`, `ui/` | Phần huấn luyện và giao diện Pygame dự kiến |
-| `logs/`, `checkpoints/`, `notebooks/` | Kết quả chạy, trọng số và phân tích |
+| `train/`, `ui/` | Huấn luyện mạng nơ-ron/RL và giao diện Pygame |
+| `logs/`, `checkpoints/`, `notebooks/` | Kết quả thực nghiệm, trọng số đã train và notebook phân tích |
 | `docs/` | Quy ước nhóm |
 
-## Nộp bài
+## Nộp bài cuối kỳ
 
-Theo checklist của nhóm, đóng gói `NhomXX_TenGame_TTNTNC_HoTen_MaSV.zip` gồm mã nguồn, README, log, checkpoint, báo cáo, slide và poster. Báo cáo các thí nghiệm đã thực sự chạy, kèm cấu hình, seed và số ván.
+### 1. Sản phẩm bắt buộc trong 01 file ZIP điện tử (chỉ nhóm trưởng nộp đại diện)
+
+- **Quy tắc đặt tên file ZIP:** Đặt theo thông báo nộp bài trên hệ thống của giảng viên `Nhom??_TenDeTai_HoTen_MaSV.zip` (ví dụ: `Nhom03_GameAI_Caro9x9_NguyenVanA_3124123456.zip`; đối chiếu thêm mẫu trong đề cương PDF `NhomXX_TenGame_TTNTNC_HoTen_MaSV.zip` nếu cổng nộp yêu cầu).
+- **Tài liệu tổng kết:** Báo cáo cuối kỳ hoàn chỉnh (đủ 5 chương theo đề cương), slide thuyết trình và poster giới thiệu đề tài.
+- **Mã nguồn & cấu hình tái lập:** Toàn bộ mã nguồn Python, `configs/default.json`, `requirements.txt`, bộ kiểm thử tự động (`pytest`), cùng hướng dẫn cài đặt/train/evaluate/demo trong `README.md` đảm bảo **chạy lại được từ đầu**.
+- **Dữ liệu:** Dataset sinh ván cờ (nếu dung lượng nhỏ) hoặc script sinh dữ liệu kèm đường dẫn truy cập dữ liệu.
+- **Tài nguyên thực nghiệm & minh họa:** Jupyter Notebook sinh bảng/biểu đồ (`notebooks/`), trọng số mô hình đã huấn luyện (`checkpoints/`), log thi đấu thực nghiệm (`logs/`), hình ảnh minh họa, **video demo** và danh mục tài liệu tham khảo có trích dẫn rõ phần tự cài đặt/kế thừa.
+- **Hồ sơ đóng góp & GitHub:** Đường dẫn GitHub Repository chính của đề tài và bảng danh sách thành viên (Họ tên, MSSV, nhiệm vụ, công việc thực hiện, tỷ lệ đóng góp `%` có **tổng bằng 100%**).
+
+### 2. Bản cứng và yêu cầu bảo vệ
+
+- Chuẩn bị thêm **01 cuốn báo cáo in**, slide thuyết trình và poster khi báo cáo cuối kỳ.
+- Chỉ báo cáo các thí nghiệm và mô hình đã thực sự chạy (kèm cấu hình, `seed`, ngân sách tính toán và số ván). Mỗi thành viên phải nắm rõ và giải thích được phần công việc của mình; lịch sử GitHub và kết quả thực hiện là căn cứ đánh giá mức độ đóng góp cá nhân.

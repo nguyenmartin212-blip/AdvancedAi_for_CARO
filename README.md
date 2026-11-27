@@ -48,13 +48,33 @@ Người chơi mặc định cầm X và đi trước; `--side o` cho AI đi tr�
 
 MCTS gồm chọn nút theo UCT, mở rộng, mô phỏng ngẫu nhiên đến hết ván và cập nhật ngược. Mỗi nút lưu tổng kết quả theo góc nhìn **bên sắp đi tại nút đó**. Khi chọn con, lấy âm giá trị trung bình của con; khi cập nhật ngược, đổi dấu qua mỗi lượt. Nước cuối được chọn theo số lần thăm, rồi điểm trung bình từ góc nhìn gốc. Bot kiểm tra thắng ngay trước, sau đó chặn đối thủ ở gốc; mọi mô phỏng dùng bản sao để giữ nguyên trạng thái đầu vào.
 
-Factory nhận `seed`, `simulations` (số nguyên dương) và `c` (hữu hạn, không âm). Mặc định của lớp là 100 mô phỏng; cấu hình chung hiện tại dùng 400. CLI cho phép ghi đè để chạy demo nhanh. Cùng seed, cấu hình và chuỗi lời gọi cho cùng nước đi. Rollout hiện dùng nước ngẫu nhiên, chưa có đánh giá học máy hay giới hạn thời gian; ngân sách mô phỏng thấp có thể bỏ sót chiến thuật sâu.
+Factory nhận `seed`, `simulations` (số nguyên dương) và `c` (hữu hạn, không âm). Mặc định của lớp là 100 mô phỏng; cấu hình chung hiện tại dùng 400. CLI cho phép ghi đè để chạy demo nhanh. Ở chế độ cố định số mô phỏng, cùng seed, cấu hình và chuỗi lời gọi cho cùng nước đi; chế độ thời gian còn phụ thuộc tốc độ máy. Rollout dùng nước ngẫu nhiên, chưa có đánh giá học máy; ngân sách mô phỏng thấp có thể bỏ sót chiến thuật sâu. MCTS hiện hỗ trợ thêm `time_limit` và bộ đếm `last_simulations`; hướng dẫn ở phần bên dưới.
 
 Kiểm tra thực tế trên nhánh này (15/11/2026, Python 3.15.1, NumPy 2.5.4):
 
 - `pytest -q`: **48 test đạt**, gồm chiến thuật thắng/chặn, cùng seed, giữ nguyên đầu vào, góc nhìn UCT/cập nhật ngược, ván hòa và các trường hợp nhập terminal.
 - Lệnh `quick_match` ở trên: **MCTS thắng 12, thua 0, hòa 0** trước Random; 400 mô phỏng/nước, `c=1.4`, seed gốc 0, đổi bên từng ván và 2 nước khai cuộc ngẫu nhiên theo runner hiện có. Đây là mẫu kiểm tra nhỏ, chưa phải đánh giá sức mạnh tổng quát.
 - Chạy `scripts.play_cli random --seed 0` qua đầu vào terminal đã chuẩn bị: kết thúc sau 9 nước, người chơi X thắng; đã thử sai định dạng, tọa độ âm/ngoài bàn và ô đã có quân.
+
+## MCTS theo thời gian và Ablation 2 (Thành viên 2)
+
+MCTS nhận thêm `time_limit` (giây/nước, mặc định `None`). Khi đặt cả `simulations` và `time_limit`, bot dừng khi chạm một trong hai giới hạn. Thời gian được tính từ đầu `select_action()`; bot vẫn hoàn thành kiểm tra thắng/chặn ở gốc và mô phỏng đã bắt đầu. Đây là giới hạn mềm, có thể vượt ngân sách bởi chi phí kiểm tra chiến thuật và một rollout. Nếu chưa kịp bắt đầu rollout nào, bot trả một nước hợp lệ bằng RNG đã nhận seed.
+
+`last_simulations` được đặt lại sau mỗi lời gọi và chỉ đếm rollout đã hoàn thành. Nước thắng/chặn trực tiếp có giá trị 0. Arena tự truyền `time_limit` ở chế độ `time`, đồng thời ghi số mô phỏng thực tế thay vì ngân sách khai báo. Kết quả giải đấu 2.000 ván bên dưới là thí nghiệm trước thay đổi này, dùng hiệu chuẩn số mô phỏng; cần tạo run mới khi đánh giá MCTS theo thời gian trực tiếp.
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m scripts.play_cli mcts --side o --seed 0 --simulations 2000 --time-limit 0.05
+.\.venv\Scripts\python.exe -X utf8 -m arena.round_robin --agents mcts heuristic -n 100 --budget-mode time --seconds-per-move 0.05 --simulations 100000 --seed 0 --run rr_mcts_native_time_100
+.\.venv\Scripts\python.exe -X utf8 -m scripts.ablation_mcts -n 40 --seed 0 --run mcts_sensitivity_40
+```
+
+Ablation 2 khảo sát đủ `simulations ∈ {100, 400, 1000, 2000}` và `c ∈ {0.7, 1.4, 2.0}`, đối đầu Random và Heuristic. Mỗi cấu hình chạy 40 ván/đối thủ, đổi X/O theo cặp với cùng khai cuộc và seed giữa các cấu hình. Tổng cộng 24 cấu hình đối đầu, 960 ván. Có thể thêm `--opponents random heuristic alphabeta` hoặc tăng `-n` để mở rộng.
+
+Log thô nằm ở `logs/<run>_s<simulations>_c<c>_vs_<opponent>.jsonl`; `logs/<run>.jsonl` chứa thông tin môi trường và bảng tổng hợp điểm, CI Wilson 95%, thời gian trung bình, P95 và số mô phỏng thực tế. Runner từ chối tên run đã tồn tại để tránh gộp nhầm thí nghiệm. Dùng `python -X utf8 -m scripts.summarize_mcts logs/mcts_sensitivity_40.jsonl` để đối chiếu log thô và xuất CSV cho notebook. Xem [docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md) cho kết quả và cách đọc số liệu.
+
+Run `mcts_sensitivity_40` đã hoàn tất 960 ván: MCTS thắng 40/40 trước Random ở mọi cấu hình; kết quả tốt nhất trước Heuristic là 3–0–37 tại 2.000 mô phỏng, `c=0.7`. Kiểm tra riêng 100 ván với deadline 50 ms có P95 50,99 ms.
+
+Thiết kế chi tiết ở [MCTS_DESIGN.md](docs/MCTS_DESIGN.md); kịch bản quay và nội dung trình bày ở [MCTS_DEMO.md](docs/MCTS_DEMO.md).
 
 ## Arena đánh giá chuẩn & Notebook phân tích (Thành viên 3)
 

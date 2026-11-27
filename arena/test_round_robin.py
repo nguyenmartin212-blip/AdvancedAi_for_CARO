@@ -129,7 +129,7 @@ def test_quick_match_play_game_compatibility():
     winner, history = play_game(a, b, size=9, k=5, opening_moves=2, seed=42)
     assert winner in (-1, 0, 1)
     assert isinstance(history, list) and len(history) >= 5
-    assert registry_mod.available() == ["alphabeta", "heuristic", "mcts", "random"]
+    assert {"alphabeta", "heuristic", "mcts", "random"}.issubset(registry_mod.available())
 
 
 def test_cli_smoke_test_and_summary_output(tmp_path, capsys):

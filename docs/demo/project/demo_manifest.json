@@ -1,0 +1,1293 @@
+{
+  "recorded_at": "2026-11-27T11:14:59.887Z",
+  "viewport": {
+    "width": 1280,
+    "height": 630
+  },
+  "caption_language": "vi",
+  "app": "ui.web_app",
+  "mcts": {
+    "simulations": 400,
+    "c": 1.4
+  },
+  "cli": {
+    "simulations": 2000,
+    "time_limit": 0.05,
+    "seed": 0
+  },
+  "tactical_fixtures": {
+    "win": [
+      36,
+      9,
+      37,
+      10,
+      38,
+      11,
+      39,
+      12
+    ],
+    "block": [
+      40,
+      0,
+      49,
+      1,
+      41,
+      2,
+      50,
+      3
+    ]
+  },
+  "agent_observations": [
+    {
+      "agent": "random",
+      "fixture": "win",
+      "action": 33,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        33
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "random",
+      "fixture": "block",
+      "action": 33,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        33
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "random",
+      "fixture": "double_threat",
+      "action": 33,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        33,
+        1
+      ],
+      "winner": -1
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "win",
+      "action": 40,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "winner": 1
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "block",
+      "action": 4,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "double_threat",
+      "action": 1,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "winner": -1
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "win",
+      "action": 40,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "winner": 1
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "block",
+      "action": 4,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "double_threat",
+      "action": 1,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "winner": -1
+    },
+    {
+      "agent": "mcts",
+      "fixture": "win",
+      "action": 40,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "winner": 1
+    },
+    {
+      "agent": "mcts",
+      "fixture": "block",
+      "action": 4,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "mcts",
+      "fixture": "double_threat",
+      "action": 1,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "winner": -1
+    },
+    {
+      "agent": "cnn",
+      "fixture": "win",
+      "action": 13,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        13
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "cnn",
+      "fixture": "block",
+      "action": 4,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "cnn",
+      "fixture": "double_threat",
+      "action": 6,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        6,
+        1
+      ],
+      "winner": -1
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "win",
+      "action": 40,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "winner": 1
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "block",
+      "action": 4,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "winner": 0
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "double_threat",
+      "action": 1,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "winner": -1
+    }
+  ],
+  "checkpoint_sha256": "611e751f048ed8a48bd0ace598dfa8d3b878d244db37a80715e991454e73e9e5",
+  "live_game": {
+    "size": 9,
+    "k": 5,
+    "moves": [
+      49,
+      51,
+      12,
+      31,
+      55,
+      41,
+      39,
+      21,
+      11,
+      61
+    ],
+    "board": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        -1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "player": 1,
+    "winner": -1,
+    "done": true,
+    "last_action": 61,
+    "winning_cells": [
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        7
+      ]
+    ],
+    "actor": "heuristic",
+    "elapsed_ms": 2.38,
+    "work": 0
+  },
+  "source_log_sha256": "fb32965127e7f05a20f04cd621bf06c17f51d0a504e8278d41aed5e3dd9d89da",
+  "chapters": [
+    {
+      "t": 0,
+      "text": "Caro 9×9 theo luật freestyle: đủ 5 quân liên tiếp là thắng."
+    },
+    {
+      "t": 8.018,
+      "text": "Giao diện Web: chọn chế độ Người đấu AI, đối thủ MCTS và cố định seed để kiểm chứng."
+    },
+    {
+      "t": 21.397,
+      "text": "Người đi X, MCTS trả nước O qua cùng API và engine của dự án."
+    },
+    {
+      "t": 26.985,
+      "text": "Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất."
+    },
+    {
+      "t": 32.806,
+      "text": "Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất."
+    },
+    {
+      "t": 38.658,
+      "text": "Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất."
+    },
+    {
+      "t": 43.859,
+      "text": "Nút Hoàn tác cho phép quay lại trước lượt vừa đánh."
+    },
+    {
+      "t": 49.013,
+      "text": "Có thể chọn quân O để AI đi trước."
+    },
+    {
+      "t": 54.04,
+      "text": "Thế cờ kiểm thử: X có bốn quân trên hàng 4 và có thể thắng tại ô (4, 4)."
+    },
+    {
+      "t": 64.507,
+      "text": "MCTS đánh (4, 4), tạo năm quân liên tiếp và kết thúc ván ngay ở bước kiểm tra gốc."
+    },
+    {
+      "t": 74.676,
+      "text": "Thế cờ kiểm thử: O đe dọa thắng trên hàng 0, chỉ còn một ô chặn tại (0, 4)."
+    },
+    {
+      "t": 85.056,
+      "text": "MCTS chặn tại (0, 4). Hai thế cờ kiểm thử dùng lịch sử hợp lệ và agent thật."
+    },
+    {
+      "t": 95.19,
+      "text": "Hệ thống có sáu agent: Random, Heuristic, Alpha-Beta, MCTS, CNN và MCTS-CNN. Level 6 và 8 là hướng mở rộng."
+    },
+    {
+      "t": 102.598,
+      "text": "Random chọn ngẫu nhiên, không có luật thắng/chặn."
+    },
+    {
+      "t": 102.713,
+      "text": "random · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 104.767,
+      "text": "random chọn (3,6): bỏ qua ô thắng (4,4) trong thế này."
+    },
+    {
+      "t": 109.95,
+      "text": "random · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 112.114,
+      "text": "random chọn (3,6): không chặn ô bắt buộc trong thế này."
+    },
+    {
+      "t": 117.297,
+      "text": "random · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 119.511,
+      "text": "random chọn (3,6): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 124.713,
+      "text": "Heuristic ưu tiên thắng, rồi chặn và lượng giá cửa sổ."
+    },
+    {
+      "t": 124.914,
+      "text": "heuristic · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 126.933,
+      "text": "heuristic chọn (4,4): hoàn thành năm quân và thắng."
+    },
+    {
+      "t": 132.175,
+      "text": "heuristic · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 134.133,
+      "text": "heuristic chọn (0,4): chặn đúng ô bắt buộc."
+    },
+    {
+      "t": 139.585,
+      "text": "heuristic · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 141.64,
+      "text": "heuristic chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 146.77,
+      "text": "Alpha-Beta tìm kiếm Minimax sâu 3, cắt tỉa và xếp thứ tự ứng viên."
+    },
+    {
+      "t": 146.863,
+      "text": "alphabeta · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 148.837,
+      "text": "alphabeta chọn (4,4): hoàn thành năm quân và thắng."
+    },
+    {
+      "t": 154.284,
+      "text": "alphabeta · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 156.9,
+      "text": "alphabeta chọn (0,4): chặn đúng ô bắt buộc."
+    },
+    {
+      "t": 162.532,
+      "text": "alphabeta · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 165.021,
+      "text": "alphabeta chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 170.206,
+      "text": "MCTS dùng UCT và rollout ngẫu nhiên, tối đa 400 mô phỏng."
+    },
+    {
+      "t": 170.333,
+      "text": "mcts · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 172.264,
+      "text": "mcts chọn (4,4): hoàn thành năm quân và thắng."
+    },
+    {
+      "t": 178.658,
+      "text": "mcts · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 180.997,
+      "text": "mcts chọn (0,4): chặn đúng ô bắt buộc."
+    },
+    {
+      "t": 187.595,
+      "text": "mcts · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 191.193,
+      "text": "mcts chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 196.62,
+      "text": "CNN dùng checkpoint đã huấn luyện; policy chọn một ô hợp lệ."
+    },
+    {
+      "t": 198.263,
+      "text": "cnn · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 201.286,
+      "text": "cnn chọn (1,4): bỏ qua ô thắng (4,4) trong thế này."
+    },
+    {
+      "t": 207.552,
+      "text": "cnn · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 210.215,
+      "text": "cnn chọn (0,4): chặn đúng ô bắt buộc."
+    },
+    {
+      "t": 215.97,
+      "text": "cnn · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 219.163,
+      "text": "cnn chọn (0,6): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 224.557,
+      "text": "MCTS-CNN dùng policy và value dẫn hướng PUCT, 56 mô phỏng."
+    },
+    {
+      "t": 224.956,
+      "text": "mcts_cnn · Thế kiểm thử: X có ô thắng tại (4,4)."
+    },
+    {
+      "t": 227.468,
+      "text": "mcts_cnn chọn (4,4): hoàn thành năm quân và thắng."
+    },
+    {
+      "t": 233.47,
+      "text": "mcts_cnn · Thế kiểm thử: X cần chặn O tại (0,4)."
+    },
+    {
+      "t": 235.56,
+      "text": "mcts_cnn chọn (0,4): chặn đúng ô bắt buộc."
+    },
+    {
+      "t": 241.001,
+      "text": "mcts_cnn · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai."
+    },
+    {
+      "t": 244.931,
+      "text": "mcts_cnn chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent."
+    },
+    {
+      "t": 250.329,
+      "text": "AI đấu AI: X là MCTS, O là Heuristic; seed 0, hai nước khai cuộc, 400 mô phỏng cho MCTS."
+    },
+    {
+      "t": 272.526,
+      "text": "Lịch sử Web cho phép mở lại log đã có để kiểm tra các tình huống AI bỏ sót chiến thuật."
+    },
+    {
+      "t": 280.414,
+      "text": "Ván thực nghiệm MCTS thua Heuristic: năm quân O được tô rõ. Rollout ngẫu nhiên vẫn có thể bỏ sót chiến thuật."
+    },
+    {
+      "t": 289.685,
+      "text": "CLI thực thi MCTS với ngân sách mềm 50 ms/nước. Nội dung bên trên được thu trực tiếp từ tiến trình Python."
+    },
+    {
+      "t": 309.792,
+      "text": "Nhập sai định dạng: CLI yêu cầu nhập hai số nguyên cách nhau bằng dấu cách."
+    },
+    {
+      "t": 314.98,
+      "text": "Tọa độ trên bàn 9×9 nằm trong khoảng 0–8. CLI cho nhập lại khi vượt phạm vi."
+    },
+    {
+      "t": 319.593,
+      "text": "Sau nước hợp lệ, chương trình in lại bàn cờ và cho MCTS trả lời."
+    },
+    {
+      "t": 328.58,
+      "text": "Số liệu lấy từ CSV đã đối chiếu log: tăng số mô phỏng làm tăng chi phí, nhưng mức cải thiện trước Heuristic còn nhỏ."
+    },
+    {
+      "t": 354.178,
+      "text": "Trong bộ đo đã lưu: Alpha-Beta đứng đầu, CNN thứ hai. Số liệu này trích notebook, không phải giải mới chạy khi quay."
+    },
+    {
+      "t": 370.419,
+      "text": "CNN được huấn luyện có giám sát. MCTS-CNN dùng PUCT và cùng checkpoint; chưa có vòng lặp tự chơi AlphaZero."
+    },
+    {
+      "t": 378.444,
+      "text": "Rollout ngẫu nhiên còn yếu trước chiến thuật. Có thể đối chiếu thêm mcts_cnn trong cùng hệ thống."
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "web_human_vs_mcts.png",
+      "description": "Người đấu MCTS, seed 0, ngân sách 400 mô phỏng"
+    },
+    {
+      "file": "mcts_win_before.png",
+      "description": "Thế kiểm thử trước nước thắng ngay",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12
+      ],
+      "seed": 0
+    },
+    {
+      "file": "mcts_win_after.png",
+      "description": "MCTS chọn nước thắng ngay",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "seed": 0
+    },
+    {
+      "file": "mcts_block_before.png",
+      "description": "Thế kiểm thử trước nước chặn bắt buộc",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3
+      ],
+      "seed": 0
+    },
+    {
+      "file": "mcts_block_after.png",
+      "description": "MCTS chặn nước thắng của đối thủ",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0
+    },
+    {
+      "file": "project_agents.png",
+      "description": "Web dùng checkpoint thật cho đối thủ MCTS-CNN"
+    },
+    {
+      "file": "common_win_before.png",
+      "description": "Thế kiểm thử chung: win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12
+      ],
+      "seed": 0
+    },
+    {
+      "file": "random_win.png",
+      "description": "Quyết định thực tế của random ở thế win",
+      "agent": "random",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        33
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "common_block_before.png",
+      "description": "Thế kiểm thử chung: block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3
+      ],
+      "seed": 0
+    },
+    {
+      "file": "random_block.png",
+      "description": "Quyết định thực tế của random ở thế block",
+      "agent": "random",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        33
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "common_double_threat_before.png",
+      "description": "Thế kiểm thử chung: double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5
+      ],
+      "seed": 0
+    },
+    {
+      "file": "random_double_threat.png",
+      "description": "Quyết định thực tế của random ở thế double_threat",
+      "agent": "random",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        33,
+        1
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "heuristic_win.png",
+      "description": "Quyết định thực tế của heuristic ở thế win",
+      "agent": "heuristic",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "seed": 0,
+      "winner": 1
+    },
+    {
+      "file": "heuristic_block.png",
+      "description": "Quyết định thực tế của heuristic ở thế block",
+      "agent": "heuristic",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "heuristic_double_threat.png",
+      "description": "Quyết định thực tế của heuristic ở thế double_threat",
+      "agent": "heuristic",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "alphabeta_win.png",
+      "description": "Quyết định thực tế của alphabeta ở thế win",
+      "agent": "alphabeta",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "seed": 0,
+      "winner": 1
+    },
+    {
+      "file": "alphabeta_block.png",
+      "description": "Quyết định thực tế của alphabeta ở thế block",
+      "agent": "alphabeta",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "alphabeta_double_threat.png",
+      "description": "Quyết định thực tế của alphabeta ở thế double_threat",
+      "agent": "alphabeta",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "mcts_win.png",
+      "description": "Quyết định thực tế của mcts ở thế win",
+      "agent": "mcts",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "seed": 0,
+      "winner": 1
+    },
+    {
+      "file": "mcts_block.png",
+      "description": "Quyết định thực tế của mcts ở thế block",
+      "agent": "mcts",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "mcts_double_threat.png",
+      "description": "Quyết định thực tế của mcts ở thế double_threat",
+      "agent": "mcts",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "cnn_win.png",
+      "description": "Quyết định thực tế của cnn ở thế win",
+      "agent": "cnn",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        13
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "cnn_block.png",
+      "description": "Quyết định thực tế của cnn ở thế block",
+      "agent": "cnn",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "cnn_double_threat.png",
+      "description": "Quyết định thực tế của cnn ở thế double_threat",
+      "agent": "cnn",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        6,
+        1
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "mcts_cnn_win.png",
+      "description": "Quyết định thực tế của mcts_cnn ở thế win",
+      "agent": "mcts_cnn",
+      "fixture": "win",
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ],
+      "seed": 0,
+      "winner": 1
+    },
+    {
+      "file": "mcts_cnn_block.png",
+      "description": "Quyết định thực tế của mcts_cnn ở thế block",
+      "agent": "mcts_cnn",
+      "fixture": "block",
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ],
+      "seed": 0,
+      "winner": 0
+    },
+    {
+      "file": "mcts_cnn_double_threat.png",
+      "description": "Quyết định thực tế của mcts_cnn ở thế double_threat",
+      "agent": "mcts_cnn",
+      "fixture": "double_threat",
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ],
+      "seed": 0,
+      "winner": -1
+    },
+    {
+      "file": "web_ai_vs_ai.png",
+      "description": "Ván MCTS–Heuristic được chạy trực tiếp trong lúc ghi hình",
+      "moves": [
+        49,
+        51,
+        12,
+        31,
+        55,
+        41,
+        39,
+        21,
+        11,
+        61
+      ],
+      "winner": -1,
+      "seed": 0
+    },
+    {
+      "file": "mcts_heuristic_loss.png",
+      "description": "Xem lại ván thua thực tế từ log Ablation 2",
+      "moves": [
+        5,
+        24,
+        42,
+        40,
+        29,
+        32,
+        16,
+        48,
+        56,
+        50,
+        47,
+        38,
+        34,
+        41,
+        37,
+        59,
+        23,
+        68
+      ],
+      "winner": -1,
+      "source": "mcts_sensitivity_40_s400_c1.4_vs_heuristic.jsonl"
+    },
+    {
+      "file": "cli_invalid_input.png",
+      "description": "CLI xử lý đầu vào không phải tọa độ"
+    },
+    {
+      "file": "cli_session_end.png",
+      "description": "CLI kết thúc bằng q"
+    },
+    {
+      "file": "ablation_results.png",
+      "description": "Bảng kết quả trích trực tiếp từ CSV thực nghiệm"
+    },
+    {
+      "file": "project_results.png",
+      "description": "Bảng kết quả compute trích output notebook"
+    }
+  ]
+}

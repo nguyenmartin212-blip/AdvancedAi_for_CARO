@@ -1,5 +1,7 @@
 # Kịch bản demo phần MCTS
 
+Bộ video và slide bao quát toàn dự án nằm ở [PROJECT_DEMO.md](PROJECT_DEMO.md). Tài liệu này giữ riêng phần MCTS để tham khảo khi trình bày thuật toán.
+
 Bản ghi ngày 27/11/2026 dài 3 phút, độ phân giải 1280×720, 12 fps. Video có phụ đề tiếng Việt, không có lời thu âm. Web dùng MCTS với 400 mô phỏng, c=1.4; CLI dùng tối đa 2.000 mô phỏng và giới hạn mềm 50 ms/nước.
 
 - [Video Web và CLI](demo/mcts_demo_vi.mp4)

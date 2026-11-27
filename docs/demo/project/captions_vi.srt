@@ -1,0 +1,251 @@
+1
+00:00:00,000 --> 00:00:08,080
+Caro 9×9 theo luật freestyle: đủ 5 quân liên tiếp là thắng.
+
+2
+00:00:08,080 --> 00:00:21,424
+Giao diện Web: chọn chế độ Người đấu AI, đối thủ MCTS và cố định seed để kiểm chứng.
+
+3
+00:00:21,424 --> 00:00:26,892
+Người đi X, MCTS trả nước O qua cùng API và engine của dự án.
+
+4
+00:00:26,892 --> 00:00:43,801
+Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất.
+
+5
+00:00:43,801 --> 00:00:48,947
+Nút Hoàn tác cho phép quay lại trước lượt vừa đánh.
+
+6
+00:00:48,947 --> 00:00:53,929
+Có thể chọn quân O để AI đi trước.
+
+7
+00:00:53,929 --> 00:01:04,564
+Thế cờ kiểm thử: X có bốn quân trên hàng 4 và có thể thắng tại ô (4, 4).
+
+8
+00:01:04,564 --> 00:01:14,627
+MCTS đánh (4, 4), tạo năm quân liên tiếp và kết thúc ván ngay ở bước kiểm tra gốc.
+
+9
+00:01:14,627 --> 00:01:25,083
+Thế cờ kiểm thử: O đe dọa thắng trên hàng 0, chỉ còn một ô chặn tại (0, 4).
+
+10
+00:01:25,083 --> 00:01:35,263
+MCTS chặn tại (0, 4). Hai thế cờ kiểm thử dùng lịch sử hợp lệ và agent thật.
+
+11
+00:01:35,263 --> 00:01:42,559
+Hệ thống có sáu agent: Random, Heuristic, Alpha-Beta, MCTS, CNN và MCTS-CNN. Level 6 và 8 là hướng mở rộng.
+
+12
+00:01:42,559 --> 00:01:42,766
+Random chọn ngẫu nhiên, không có luật thắng/chặn.
+
+13
+00:01:42,766 --> 00:01:44,827
+random · Thế kiểm thử: X có ô thắng tại (4,4).
+
+14
+00:01:44,827 --> 00:01:49,926
+random chọn (3,6): bỏ qua ô thắng (4,4) trong thế này.
+
+15
+00:01:49,926 --> 00:01:51,993
+random · Thế kiểm thử: X cần chặn O tại (0,4).
+
+16
+00:01:51,993 --> 00:01:57,254
+random chọn (3,6): không chặn ô bắt buộc trong thế này.
+
+17
+00:01:57,254 --> 00:01:59,493
+random · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+18
+00:01:59,493 --> 00:02:04,676
+random chọn (3,6): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+19
+00:02:04,676 --> 00:02:04,875
+Heuristic ưu tiên thắng, rồi chặn và lượng giá cửa sổ.
+
+20
+00:02:04,875 --> 00:02:06,966
+heuristic · Thế kiểm thử: X có ô thắng tại (4,4).
+
+21
+00:02:06,966 --> 00:02:12,145
+heuristic chọn (4,4): hoàn thành năm quân và thắng.
+
+22
+00:02:12,145 --> 00:02:14,181
+heuristic · Thế kiểm thử: X cần chặn O tại (0,4).
+
+23
+00:02:14,181 --> 00:02:19,566
+heuristic chọn (0,4): chặn đúng ô bắt buộc.
+
+24
+00:02:19,566 --> 00:02:21,646
+heuristic · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+25
+00:02:21,646 --> 00:02:26,794
+heuristic chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+26
+00:02:26,794 --> 00:02:28,864
+alphabeta · Thế kiểm thử: X có ô thắng tại (4,4).
+
+27
+00:02:28,864 --> 00:02:34,095
+alphabeta chọn (4,4): hoàn thành năm quân và thắng.
+
+28
+00:02:34,095 --> 00:02:36,897
+alphabeta · Thế kiểm thử: X cần chặn O tại (0,4).
+
+29
+00:02:36,897 --> 00:02:42,610
+alphabeta chọn (0,4): chặn đúng ô bắt buộc.
+
+30
+00:02:42,610 --> 00:02:44,863
+alphabeta · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+31
+00:02:44,863 --> 00:02:50,110
+alphabeta chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+32
+00:02:50,110 --> 00:02:50,311
+MCTS dùng UCT và rollout ngẫu nhiên, tối đa 400 mô phỏng.
+
+33
+00:02:50,311 --> 00:02:52,193
+mcts · Thế kiểm thử: X có ô thắng tại (4,4).
+
+34
+00:02:52,193 --> 00:02:58,615
+mcts chọn (4,4): hoàn thành năm quân và thắng.
+
+35
+00:02:58,615 --> 00:03:00,844
+mcts · Thế kiểm thử: X cần chặn O tại (0,4).
+
+36
+00:03:00,844 --> 00:03:06,975
+mcts chọn (0,4): chặn đúng ô bắt buộc.
+
+37
+00:03:06,975 --> 00:03:10,842
+mcts · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+38
+00:03:10,842 --> 00:03:16,582
+mcts chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+39
+00:03:16,582 --> 00:03:18,188
+CNN dùng checkpoint đã huấn luyện; policy chọn một ô hợp lệ.
+
+40
+00:03:18,188 --> 00:03:20,937
+cnn · Thế kiểm thử: X có ô thắng tại (4,4).
+
+41
+00:03:20,937 --> 00:03:27,505
+cnn chọn (1,4): bỏ qua ô thắng (4,4) trong thế này.
+
+42
+00:03:27,505 --> 00:03:30,256
+cnn · Thế kiểm thử: X cần chặn O tại (0,4).
+
+43
+00:03:30,256 --> 00:03:35,862
+cnn chọn (0,4): chặn đúng ô bắt buộc.
+
+44
+00:03:35,862 --> 00:03:39,028
+cnn · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+45
+00:03:39,028 --> 00:03:44,455
+cnn chọn (0,6): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+46
+00:03:44,455 --> 00:03:44,859
+MCTS-CNN dùng policy và value dẫn hướng PUCT, 56 mô phỏng.
+
+47
+00:03:44,859 --> 00:03:47,432
+mcts_cnn · Thế kiểm thử: X có ô thắng tại (4,4).
+
+48
+00:03:47,432 --> 00:03:53,455
+mcts_cnn chọn (4,4): hoàn thành năm quân và thắng.
+
+49
+00:03:53,455 --> 00:03:55,577
+mcts_cnn · Thế kiểm thử: X cần chặn O tại (0,4).
+
+50
+00:03:55,577 --> 00:04:00,876
+mcts_cnn chọn (0,4): chặn đúng ô bắt buộc.
+
+51
+00:04:00,876 --> 00:04:04,893
+mcts_cnn · Thế kiểm thử: O có hai ô thắng (0,1) và (0,6); X không thể chặn cả hai.
+
+52
+00:04:04,893 --> 00:04:09,971
+mcts_cnn chọn (0,1): O thắng ở đầu còn lại; đây là thế đã thua, không phải lỗi riêng của agent.
+
+53
+00:04:09,971 --> 00:04:32,455
+AI đấu AI: X là MCTS, O là Heuristic; seed 0, hai nước khai cuộc, 400 mô phỏng cho MCTS.
+
+54
+00:04:32,455 --> 00:04:40,186
+Lịch sử Web cho phép mở lại log đã có để kiểm tra các tình huống AI bỏ sót chiến thuật.
+
+55
+00:04:40,186 --> 00:04:49,639
+Ván thực nghiệm MCTS thua Heuristic: năm quân O được tô rõ. Rollout ngẫu nhiên vẫn có thể bỏ sót chiến thuật.
+
+56
+00:04:49,639 --> 00:05:09,786
+CLI thực thi MCTS với ngân sách mềm 50 ms/nước. Nội dung bên trên được thu trực tiếp từ tiến trình Python.
+
+57
+00:05:09,786 --> 00:05:14,909
+Nhập sai định dạng: CLI yêu cầu nhập hai số nguyên cách nhau bằng dấu cách.
+
+58
+00:05:14,909 --> 00:05:19,640
+Tọa độ trên bàn 9×9 nằm trong khoảng 0–8. CLI cho nhập lại khi vượt phạm vi.
+
+59
+00:05:19,640 --> 00:05:28,559
+Sau nước hợp lệ, chương trình in lại bàn cờ và cho MCTS trả lời.
+
+60
+00:05:28,559 --> 00:05:54,029
+Số liệu lấy từ CSV đã đối chiếu log: tăng số mô phỏng làm tăng chi phí, nhưng mức cải thiện trước Heuristic còn nhỏ.
+
+61
+00:05:54,029 --> 00:06:10,317
+Trong bộ đo đã lưu: Alpha-Beta đứng đầu, CNN thứ hai. Số liệu này trích notebook, không phải giải mới chạy khi quay.
+
+62
+00:06:10,317 --> 00:06:18,549
+CNN được huấn luyện có giám sát. MCTS-CNN dùng PUCT và cùng checkpoint; chưa có vòng lặp tự chơi AlphaZero.
+
+63
+00:06:18,549 --> 00:06:24,097
+Rollout ngẫu nhiên còn yếu trước chiến thuật. Có thể đối chiếu thêm mcts_cnn trong cùng hệ thống.

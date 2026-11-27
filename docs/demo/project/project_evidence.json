@@ -1,0 +1,613 @@
+{
+  "source_commit": "f87510e86824db5f2891fc563a86448e03286f54",
+  "tournament_source": "notebooks/analysis.ipynb (saved outputs)",
+  "tournament": [
+    {
+      "mode": "compute",
+      "agent": "random",
+      "wins": 0,
+      "draws": 0,
+      "losses": 400,
+      "score": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.01,
+      "mean_ms": 0.012,
+      "p95_ms": 0.025,
+      "work": 0.0
+    },
+    {
+      "mode": "compute",
+      "agent": "heuristic",
+      "wins": 245,
+      "draws": 9,
+      "losses": 146,
+      "score": 0.624,
+      "ci_low": 0.58,
+      "ci_high": 0.67,
+      "mean_ms": 1.299,
+      "p95_ms": 2.8449999999999998,
+      "work": 0.0
+    },
+    {
+      "mode": "compute",
+      "agent": "alphabeta",
+      "wins": 360,
+      "draws": 28,
+      "losses": 12,
+      "score": 0.935,
+      "ci_low": 0.91,
+      "ci_high": 0.96,
+      "mean_ms": 51.666,
+      "p95_ms": 110.72,
+      "work": 157.1
+    },
+    {
+      "mode": "compute",
+      "agent": "mcts",
+      "wins": 101,
+      "draws": 0,
+      "losses": 299,
+      "score": 0.253,
+      "ci_low": 0.21,
+      "ci_high": 0.3,
+      "mean_ms": 54.437,
+      "p95_ms": 86.779,
+      "work": 400.0
+    },
+    {
+      "mode": "compute",
+      "agent": "cnn",
+      "wins": 258,
+      "draws": 35,
+      "losses": 107,
+      "score": 0.689,
+      "ci_low": 0.64,
+      "ci_high": 0.73,
+      "mean_ms": 1.168,
+      "p95_ms": 1.8860000000000001,
+      "work": 0.0
+    },
+    {
+      "mode": "time",
+      "agent": "random",
+      "wins": 0,
+      "draws": 0,
+      "losses": 400,
+      "score": 0.0,
+      "ci_low": 0.0,
+      "ci_high": 0.01,
+      "mean_ms": 0.011,
+      "p95_ms": 0.023,
+      "work": 0.0
+    },
+    {
+      "mode": "time",
+      "agent": "heuristic",
+      "wins": 245,
+      "draws": 17,
+      "losses": 138,
+      "score": 0.634,
+      "ci_low": 0.59,
+      "ci_high": 0.68,
+      "mean_ms": 1.204,
+      "p95_ms": 2.4650000000000003,
+      "work": 0.0
+    },
+    {
+      "mode": "time",
+      "agent": "alphabeta",
+      "wins": 365,
+      "draws": 21,
+      "losses": 14,
+      "score": 0.939,
+      "ci_low": 0.91,
+      "ci_high": 0.96,
+      "mean_ms": 48.688,
+      "p95_ms": 100.18199999999999,
+      "work": 155.6
+    },
+    {
+      "mode": "time",
+      "agent": "mcts",
+      "wins": 101,
+      "draws": 0,
+      "losses": 299,
+      "score": 0.253,
+      "ci_low": 0.21,
+      "ci_high": 0.3,
+      "mean_ms": 45.642,
+      "p95_ms": 68.29599999999999,
+      "work": 359.0
+    },
+    {
+      "mode": "time",
+      "agent": "cnn",
+      "wins": 252,
+      "draws": 36,
+      "losses": 112,
+      "score": 0.675,
+      "ci_low": 0.63,
+      "ci_high": 0.72,
+      "mean_ms": 1.0510000000000002,
+      "p95_ms": 1.664,
+      "work": 0.0
+    }
+  ],
+  "checkpoint_sha256": "611e751f048ed8a48bd0ace598dfa8d3b878d244db37a80715e991454e73e9e5",
+  "cnn": {
+    "seed": 42,
+    "channels": 48,
+    "epochs": 18,
+    "best_epoch": 7,
+    "hardware": "CPU (Intel64 Family 6 Model 170 Stepping 4, GenuineIntel)",
+    "gen_seconds": 252.22,
+    "train_seconds": 356.22,
+    "dataset": {
+      "total_games": 600,
+      "train_games": 420,
+      "val_games": 90,
+      "test_games": 90,
+      "raw_positions": 20915,
+      "unique_positions": 18798,
+      "dedup_removed": 2117,
+      "train_samples_augmented": 107936,
+      "val_samples": 2882,
+      "test_samples": 2424
+    },
+    "test_metrics": {
+      "loss": 1.8083,
+      "top1_acc": 0.4757,
+      "top3_acc": 0.6972,
+      "value_mse": 0.2619
+    }
+  },
+  "source_sha256": {
+    "README.md": "40d6759d8eaccbb2c441912f12e5e4dd7a52c2b6ecb56c5801a5522dc42f8f54",
+    "notebooks/analysis.ipynb": "0a0997dfa871483b279f419918b67914501b1c50bf8ea89aedd9d6529941f32a",
+    "configs/default.json": "c4c10904e406d83fd64eb38a47155c0f964e6e02de9e3588af20cf538280fdfe"
+  },
+  "fixtures": {
+    "win": [
+      36,
+      9,
+      37,
+      10,
+      38,
+      11,
+      39,
+      12
+    ],
+    "block": [
+      40,
+      0,
+      49,
+      1,
+      41,
+      2,
+      50,
+      3
+    ],
+    "double_threat": [
+      40,
+      2,
+      49,
+      3,
+      60,
+      4,
+      70,
+      5
+    ]
+  },
+  "fixture_observations": [
+    {
+      "agent": "random",
+      "fixture": "win",
+      "action": 33,
+      "winner": 0,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        33
+      ]
+    },
+    {
+      "agent": "random",
+      "fixture": "block",
+      "action": 33,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        33
+      ]
+    },
+    {
+      "agent": "random",
+      "fixture": "double_threat",
+      "action": 33,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        33
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        33,
+        1
+      ]
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "win",
+      "action": 40,
+      "winner": 1,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ]
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "block",
+      "action": 4,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ]
+    },
+    {
+      "agent": "heuristic",
+      "fixture": "double_threat",
+      "action": 1,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ]
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "win",
+      "action": 40,
+      "winner": 1,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ]
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "block",
+      "action": 4,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ]
+    },
+    {
+      "agent": "alphabeta",
+      "fixture": "double_threat",
+      "action": 1,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ]
+    },
+    {
+      "agent": "mcts",
+      "fixture": "win",
+      "action": 40,
+      "winner": 1,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ]
+    },
+    {
+      "agent": "mcts",
+      "fixture": "block",
+      "action": 4,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ]
+    },
+    {
+      "agent": "mcts",
+      "fixture": "double_threat",
+      "action": 1,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ]
+    },
+    {
+      "agent": "cnn",
+      "fixture": "win",
+      "action": 13,
+      "winner": 0,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        13
+      ]
+    },
+    {
+      "agent": "cnn",
+      "fixture": "block",
+      "action": 4,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ]
+    },
+    {
+      "agent": "cnn",
+      "fixture": "double_threat",
+      "action": 6,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        6
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        6,
+        1
+      ]
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "win",
+      "action": 40,
+      "winner": 1,
+      "moves": [
+        36,
+        9,
+        37,
+        10,
+        38,
+        11,
+        39,
+        12,
+        40
+      ]
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "block",
+      "action": 4,
+      "winner": 0,
+      "moves": [
+        40,
+        0,
+        49,
+        1,
+        41,
+        2,
+        50,
+        3,
+        4
+      ]
+    },
+    {
+      "agent": "mcts_cnn",
+      "fixture": "double_threat",
+      "action": 1,
+      "winner": 0,
+      "moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1
+      ],
+      "final_moves": [
+        40,
+        2,
+        49,
+        3,
+        60,
+        4,
+        70,
+        5,
+        1,
+        6
+      ]
+    }
+  ],
+  "puct": {
+    "source": "README.md (200 games; 20 per pair)",
+    "games": 200,
+    "wins": 47,
+    "draws": 23,
+    "losses": 10,
+    "score": 0.73125,
+    "mean_ms": 55.6,
+    "p95_ms": 83.5,
+    "pair_results": {
+      "heuristic": [
+        17,
+        2,
+        1
+      ],
+      "alphabeta": [
+        1,
+        10,
+        9
+      ],
+      "mcts": [
+        20,
+        0,
+        0
+      ],
+      "cnn": [
+        9,
+        11,
+        0
+      ]
+    }
+  }
+}

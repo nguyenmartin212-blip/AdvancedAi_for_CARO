@@ -13,6 +13,7 @@
     "random": {},
     "heuristic": {},
     "alphabeta": {"depth": 3},
-    "mcts": {"simulations": 400, "c": 1.4}
+    "mcts": {"simulations": 400, "c": 1.4},
+    "cnn": {}
   }
 }

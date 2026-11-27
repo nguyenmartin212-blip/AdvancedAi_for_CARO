@@ -1,4 +1,18 @@
-"""Rule-based Gomoku agent and position evaluation for search."""
+"""Rule-based Gomoku agent and static position evaluation for search.
+
+Rule Priority & Conflict Resolution
+-----------------------------------
+1. Immediate win (`winning_action` for `game.player`): highest priority. If both
+   sides hold a 4-in-a-row threat, completing our own 5-in-a-row wins immediately
+   and resolves the conflict before the opponent gets another turn.
+2. Immediate block (`winning_action` for `-game.player`): second priority. When
+   the opponent has two simultaneous winning cells (an open-four or double-four
+   fork), single-ply blocking can only cover one cell and delays defeat by one ply.
+3. Positional & threat-window scoring (`evaluate`): scores all 140 length-5 line
+   windows across 4 directions using geometric weights `4^n` on uncontested segments.
+   Open-ended runs and intersecting double-three / fork shapes participate in more
+   windows than edge-blocked runs and are naturally preferred; ties break via `seed`.
+"""
 from __future__ import annotations
 
 from functools import lru_cache

@@ -200,7 +200,8 @@ def test_metrics_wilson_p95_head_to_head_and_log_roundtrip(tmp_path):
         assert math.isclose(s["score"], from_log[bot]["score"])
         assert math.isclose(s["time_per_move"], from_log[bot]["time_per_move"], abs_tol=1e-5)
         assert math.isclose(s["p95_time"], from_log[bot]["p95_time"], abs_tol=1e-5)
-    assert summary["mcts"]["work_per_move"] == pytest.approx(8.0)
+    assert 0.0 < summary["mcts"]["work_per_move"] <= 8.0
+    assert summary["mcts"]["work_per_move"] == pytest.approx(from_log["mcts"]["work_per_move"])
 
     h2h = head_to_head(logged, ["random", "heuristic", "mcts"])
     assert h2h["heuristic"]["random"]["games"] == 4
@@ -233,3 +234,22 @@ def test_time_budget_mode_and_invalid_seconds(tmp_path, capsys):
         main(["--agents", "random", "heuristic", "--budget-mode", "time", "--seconds-per-move", "0", "--log-dir", str(tmp_path)])
     assert exc.value.code == 2
 
+
+
+def test_native_mcts_time_budget_skips_probe_calibration(monkeypatch):
+    params = {"mcts": {"simulations": 123, "c": 0.7}}
+    def unexpected_factory(*args, **kwargs):
+        raise AssertionError("MCTS đã hỗ trợ thời hạn trực tiếp, không cần hiệu chuẩn số mô phỏng")
+    monkeypatch.setattr(round_robin, "make_agent", unexpected_factory)
+    round_robin._apply_time_budget(params, 0.03, 9, 5, set())
+    assert params["mcts"] == {"simulations": 123, "c": 0.7, "time_limit": 0.03}
+
+
+def test_work_average_includes_games_with_zero_rollouts():
+    records = [
+        {"agent_x": "mcts", "agent_o": "random", "winner": 1,
+         "times_x": [0.01, 0.01], "times_o": [0.0], "work_x": 8.0},
+        {"agent_x": "mcts", "agent_o": "random", "winner": 1,
+         "times_x": [0.001, 0.001], "times_o": [0.0], "work_x": 0.0},
+    ]
+    assert summarize(records)["mcts"]["work_per_move"] == pytest.approx(4.0)

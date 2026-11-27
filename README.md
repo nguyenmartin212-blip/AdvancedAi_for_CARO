@@ -10,13 +10,11 @@
   - **RQ1:** Trên bàn Caro 9×9, trong cùng ngân sách thời gian suy nghĩ mỗi nước (`~50–65 ms/nước`), MCTS/UCT với rollout ngẫu nhiên có vượt Minimax + Alpha-Beta dùng hàm lượng giá cửa sổ `4^n` hay không?
   - **RQ2:** Tác tử học từ dữ liệu/tự chơi (Level 5 CNN / Level 6 RL) cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi tích hợp dẫn hướng cho cây MCTS?
 
-## Chạy nhanh 1-Click & Web Deploy (Không cần Docker)
+## Giao diện Web
 
-Không cần cài Docker hay cấu hình thủ công:
-
-- **Windows (1-Click):** Nháy đúp trực tiếp file [run_caro.bat](run_caro.bat) tại thư mục gốc. Script tự tạo `.venv` (nếu chưa có), cài gói tối thiểu và mở trình duyệt với bàn cờ Caro 9×9 hỗ trợ cả **Người đấu AI** (chọn quân X/O, hoàn tác) và **AI đấu AI** (tự chọn 2 agent bất kỳ đối đầu tự động hoặc đi từng bước).
+- **Windows:** Chạy [run_caro.bat](run_caro.bat) tại thư mục gốc để tự động chuẩn bị `.venv`, cài gói cần thiết và mở trình duyệt với bàn cờ Caro 9×9 (hỗ trợ cả **Người đấu AI** và **AI đấu AI**).
 - **macOS / Linux:** Chạy `bash run_caro.sh` (hoặc gọi trực tiếp `.\.venv\Scripts\python.exe -X utf8 -m ui.web_app`).
-- **Deploy đám mây miễn phí (không cần Docker):** Đẩy repo lên GitHub rồi kết nối trực tiếp với **Render.com** (*New → Blueprint / Web Service*); file [render.yaml](render.yaml) tự cài bản Python + PyTorch CPU nhẹ và khởi chạy máy chủ tại `0.0.0.0:$PORT` kèm health-check `/healthz`.
+- **Triển khai trực tuyến:** File [render.yaml](render.yaml) cấu hình sẵn dịch vụ Web Python trên Render (`0.0.0.0:$PORT`, endpoint `/healthz`).
 
 ## Chạy qua dòng lệnh (CLI & Kiểm thử)
 
@@ -31,7 +29,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m arena.round_robin --agents random heuristic alphabeta mcts --seed 0
 ```
 
-Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi làm đến giao diện Pygame hoặc phần huấn luyện PyTorch, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
+Trên Linux hoặc macOS, dùng `python3 -m venv .venv` và thay đường dẫn Python bằng `.venv/bin/python`. Khi chạy phần mạng CNN/MCTS-CNN hoặc xuất biểu đồ, cài thêm các gói trong [requirements.txt](requirements.txt). GPU là tùy chọn.
 
 ## MCTS và demo terminal (Thành viên 2)
 
@@ -200,53 +198,48 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 2. Merge Heuristic trước Alpha-Beta. MCTS, CLI và arena có thể merge độc lập khi test xanh. Mỗi PR của agent thêm dòng import module trong `agents/__init__.py` để factory được đăng ký. Khi cập nhật nhánh, giữ đủ các import đã merge.
 3. Sau khi đủ bốn bot, chạy lại toàn bộ test, chạy round-robin với cấu hình nhỏ và chơi một ván demo. Lưu lệnh và kết quả đã chạy vào PR tích hợp hoặc Issue tổng. Cập nhật trạng thái level trong README sau khi kiểm tra trên `main`.
 
-## Bổ sung nhiệm vụ giai đoạn hoàn thiện cuối kỳ (3 thành viên)
+## Phân công & Tiến độ giai đoạn hoàn thiện cuối kỳ (3 thành viên)
 
-Đối chiếu trạng thái repo hiện tại với đề cương `TTNTNC_De_tai_cuoi_ky_Game_AI.pdf`, sách *AlphaGo Simplified* (Mark Liu) và quy định nộp bài của giảng viên, các nghiệp vụ **chưa hoàn thiện** cần triển khai tiếp gồm:
+Đối chiếu trạng thái nhánh `main` hiện tại (`127 passed`) với đề cương `TTNTNC_De_tai_cuoi_ky_Game_AI.pdf`, sách *AlphaGo Simplified* (Mark Liu) và quy định nộp bài của giảng viên:
 
-1. **Bài toán & Câu hỏi nghiên cứu:** Phát biểu rõ tối thiểu 02 câu hỏi nghiên cứu định lượng (ví dụ: *RQ1 — Trong cùng ngân sách thời gian suy nghĩ mỗi nước trên bàn 9×9, MCTS/UCT có vượt Alpha-Beta không? RQ2 — Tác tử học được từ dữ liệu/tự chơi cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi kết hợp MCTS?*) và phân tích không gian trạng thái Caro 9×9.
-2. **Tác tử học được (Bắt buộc):** CNN Level 5 đã có pipeline, checkpoint đã huấn luyện và kết quả trên tập test tách theo ván. Bổ sung đường cong học từ log huấn luyện vào notebook báo cáo cuối kỳ.
-3. **Đánh giá công bằng & Ablation (Bắt buộc):** Nâng giải đấu từ 12 ván smoke test lên **≥ 100 ván/cặp** (khuyến nghị 200 ván/cặp), đo đủ **02 chế độ ngân sách** (`compute` mặc định và `time` cùng giây/nước), bổ sung `score = (thắng + 0.5 × hòa) / tổng_ván`, độ trễ `p95`, số nút duyệt (`nodes`) / số mô phỏng (`simulations`), khoảng tin cậy 95% (Wilson/Bootstrap) và **tối thiểu 02 nghiên cứu cắt giảm/độ nhạy (ablation/sensitivity)**.
-4. **Giao diện đồ họa & Học liệu nộp:** Giao diện đồ họa chơi Người–Máy & Máy–Máy trên Web (`ui/web_app.py`, `ui/web_index.html`, `run_caro.bat`) và notebook sinh bảng/biểu đồ (`notebooks/analysis.ipynb`) đã được Thành viên 3 triển khai; nhóm cần hoàn thiện nốt Ablation 2 của MCTS, video demo, báo cáo 5 chương (bản mềm + 01 bản in), slide, poster và lịch sử GitHub minh bạch.
+1. **Bài toán & Câu hỏi nghiên cứu (Đã hoàn thành):** Đã phát biểu rõ **RQ1** và **RQ2** kèm phân tích không gian trạng thái Caro 9×9.
+2. **Tác tử học được & Nâng cao (Đã hoàn thành):** Đã hoàn thiện cả **Level 5 (`cnn`)** và **Level 7 (`mcts_cnn` PUCT)** dùng checkpoint đã huấn luyện [checkpoints/cnn_9x9.pt](checkpoints/cnn_9x9.pt) cùng đường cong học tập trong `notebooks/figures/`.
+3. **Đánh giá công bằng & 02 Ablation (Đã hoàn thành):** Đã hoàn tất giải đấu **2.000 ván** (`100` ván/cặp ở cả 2 chế độ `compute` và `time`), **Ablation 1** cho Minimax/Alpha-Beta (`scripts/ablation_search.py`) và **Ablation 2** 960 ván cho MCTS ([docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md)).
+4. **Giao diện đồ họa & Học liệu nộp cuối kỳ (Đang hoàn thiện học liệu):** Giao diện Web (`ui/web_app.py`, `ui/web_index.html`) và notebook biểu đồ (`notebooks/analysis.ipynb`) đã hoàn tất; nhóm chỉ còn hoàn thiện **Báo cáo cuối kỳ 5 chương (TV1)**, **Video demo + Slide (TV2)** và **Poster + Hồ sơ ZIP nộp bài (TV3)**.
 
-### Thành viên 1 · Tối ưu/Ablation Tìm kiếm & Tác tử CNN Học có giám sát (Level 5)
+### Thành viên 1 · Tối ưu/Ablation Tìm kiếm, Tác tử CNN (Level 5) & Viết Báo cáo cuối kỳ
 
-- **PR 3 — `feat/ablation-search` (Hoàn thiện Level 2–3 theo Liu Ch. 2–7).**
-  - Trong `agents/heuristic.py`: Tài liệu hóa rõ thứ tự ưu tiên luật, xử lý xung đột luật và phân tích các thế tấn công đôi (open-three / open-four) hoặc nước đi mở đường thua sau 2 bước (tương tự cơ chế chặn/tránh ở Liu Ch. 3).
-  - Trong `agents/alphabeta.py`: Bổ sung bộ đếm `last_nodes` (số nút duyệt mỗi nước) và tham số `use_pruning: bool = True`, `use_ordering: bool = True` để thực hiện **Ablation 1**: so sánh Minimax không cắt tỉa với Alpha-Beta có cắt tỉa (kiểm chứng chọn cùng nước tối ưu nhưng giảm số nút và thời gian như Liu Ch. 6), đồng thời khảo sát `depth=2` vs. `depth=3`.
-- **PR 4 — `feat/cnn` (Bắt buộc phạm vi học máy — Level 5 theo Liu Ch. 9–11 & Ch. 15).**
-  - Pipeline trong `train/` dùng Alpha-Beta độ sâu 2 để gán nhãn nước đi chuyên gia cho tensor `Gomoku.encode()` kích thước `(3, 9, 9)`. Các ván sinh dữ liệu ghép Alpha-Beta với Alpha-Beta, Heuristic hoặc Random. Nhánh value dùng kết quả ván theo góc nhìn bên sắp đi. Pipeline chia `train/validation/test` theo ván trước khi khử các trạng thái trùng và dùng validation để chọn checkpoint.
-  - Huấn luyện mạng CNN bằng PyTorch, che mặt nạ các ô không hợp lệ (`legal_actions` mask) khi suy luận để đảm bảo không sinh nước đi lỗi, lưu lịch sử loss/accuracy theo epoch vào `logs/`, lưu trọng số đã train vào `checkpoints/` (< 50 MB hoặc kèm link tải), khai báo CPU/GPU và thời gian train.
-  - Tạo `agents/cnn.py` + `tests/test_cnn.py`, đăng ký tên `cnn` trong `agents/registry.py` (kèm kiểm thử hợp lệ, thắng/chặn cơ bản, thắng Random).
-- **Báo cáo & Học liệu phụ trách:** Viết Chương 2 (Heuristic, Minimax/Alpha-Beta, CNN), Chương 3 (biểu diễn trạng thái, thiết kế Level 2, 3, 5, quy trình sinh dữ liệu & huấn luyện) và nội dung kỹ thuật cho Poster.
-- **Nghiệm thu TV1:** Có bảng số liệu + biểu đồ Ablation 1 (bật/tắt cắt tỉa, depth 2 vs. 3); checkpoint `cnn` nạp chạy lại được từ lệnh mẫu, đạt kết quả thực nghiệm thật trước `random` và `heuristic`.
+- **PR 3 — `feat/ablation-search` (Đã triển khai & hợp nhất ở PR #9).**
+  - Hoàn thiện `agents/heuristic.py`, bổ sung bộ đếm `last_nodes` và cờ `use_pruning`, `use_ordering` trong `agents/alphabeta.py`; thực hiện **Ablation 1** (`scripts/ablation_search.py`: cắt tỉa giảm `58,2%` số nút giữ nguyên 20/20 nước chọn, khảo sát `depth=2` vs. `depth=3`).
+- **PR 4 — `feat/cnn` (Đã triển khai & hợp nhất ở PR #10, nâng cấp ở PR #12).**
+  - Xây dựng pipeline `train/train_cnn.py`, tác tử `agents/cnn.py` + `tests/test_cnn.py` và checkpoint `checkpoints/cnn_9x9.pt` tách nghiêm ngặt `train/val/test` theo ván, che mặt nạ nước bất hợp lệ và lưu log theo epoch.
+- **Nhiệm vụ trọng tâm còn lại — Viết Báo cáo cuối kỳ hoàn chỉnh (5 chương):**
+  - **Chủ trì biên soạn toàn bộ Báo cáo cuối kỳ 5 chương** theo đúng cấu trúc đề cương: Chương 1 (giới thiệu, mô hình hóa Caro 9×9, RQ1 & RQ2), Chương 2 (cơ sở lý thuyết Heuristic, Minimax/Alpha-Beta, MCTS/UCT, CNN & PUCT), Chương 3 (kiến trúc hệ thống, thiết kế Level 1–7, Arena & giao diện Web), Chương 4 (tổng hợp thực nghiệm 2.000 ván, Ablation 1, Ablation 2 từ [docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md), kết quả Level 7 & thảo luận), Chương 5 (kết luận, hạn chế & hướng phát triển), kèm danh mục tài liệu tham khảo chuẩn học thuật (bản mềm + file in **01 cuốn báo cáo cứng**). *(TV2 và TV3 rà soát lại phần thuật toán mình phụ trách để cả nhóm nắm vững khi bảo vệ).*
+- **Nghiệm thu TV1:** Có đủ số liệu Ablation 1 và checkpoint `cnn`; hoàn thành trọn vẹn cuốn Báo cáo cuối kỳ 5 chương khớp 100% với số liệu thực nghiệm trong repo.
 
-### Thành viên 2 · MCTS theo thời gian, Ablation 2, Video Demo & Tùy chọn Self-play RL (Level 6)
+### Thành viên 2 · MCTS theo thời gian, Ablation 2, Video Demo & Slide thuyết trình
 
-- **PR 3 — `feat/mcts-time` (Hoàn thiện Level 4 theo Liu Ch. 8 — Bắt buộc).**
-  - Trong `agents/mcts.py`: Bổ sung tùy chọn ngân sách thời gian mỗi nước (`time_limit: float | None = None`) bên cạnh `simulations`, lưu lại số mô phỏng thực tế đã chạy (`last_simulations`) để so sánh công bằng với Alpha-Beta trong chế độ `budget_mode="time"` (có thể khảo sát thêm thu hẹp nhánh mở rộng bằng `candidate_moves`).
-  - Thực hiện **Ablation 2**: Khảo sát độ nhạy tỷ lệ thắng và độ trễ của MCTS theo ngân sách mô phỏng (`simulations` ∈ {100, 400, 1000, 2000}) và hằng số khám phá `c` ∈ {0.7, 1.4, 2.0}.
+- **PR 3 — `feat/mcts-time` (Đã triển khai & hợp nhất ở PR #16).**
+  - Bổ sung `time_limit` và `last_simulations` trong `agents/mcts.py`, tích hợp CLI & Arena; thực hiện **Ablation 2** (`scripts/ablation_mcts.py`, `scripts/summarize_mcts.py`, 960 ván trên lưới `simulations` ∈ `{100, 400, 1000, 2000}` × `c` ∈ `{0.7, 1.4, 2.0}`) cùng tài liệu [docs/MCTS_DESIGN.md](docs/MCTS_DESIGN.md) và [docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md).
 - **PR 4 (Tùy chọn cộng điểm) — `feat/rl` (Level 6 Self-play Policy Gradient theo Liu Ch. 13–15).**
-  - Nếu mở rộng thêm Level 6, khởi tạo từ checkpoint `cnn_9x9.pt` đã huấn luyện rồi tinh chỉnh bằng **Self-play Policy Gradient** để lưu đường cong học tập tự chơi và đối chiếu với bản học có giám sát.
-- **Video Demo, Báo cáo & Học liệu phụ trách:** Quay **Video Demo** hoạt động thực tế của hệ thống (trên giao diện Web 1-Click & CLI) kèm bộ ảnh chụp các thế cờ chiến thuật/lỗi điển hình của từng cấp AI; viết Chương 2 (MCTS/UCT & RL nếu có), Chương 3 (thiết kế Level 4 và demo CLI), phụ trách chính Slide thuyết trình và kịch bản trình diễn trực tiếp.
-- **Nghiệm thu TV2:** Chế độ giới hạn giây/nước của MCTS hoạt động ổn định; có đủ số liệu + log cho **Ablation 2**; có video demo và slide hoàn chỉnh.
+  - Tùy chọn không bắt buộc (nhóm đã có Level 5 `cnn` và Level 7 `mcts_cnn`).
+- **Nhiệm vụ trọng tâm còn lại — Video Demo, Ảnh tình huống & Slide thuyết trình:**
+  - Quay **Video Demo** hoạt động thực tế của hệ thống trên giao diện Web và CLI theo kịch bản [docs/MCTS_DEMO.md](docs/MCTS_DEMO.md), chụp bộ ảnh thế cờ chiến thuật/lỗi điển hình của từng cấp AI, đồng thời thiết kế **Slide thuyết trình** và kịch bản trình diễn trực tiếp.
+- **Nghiệm thu TV2:** `time_limit` và **Ablation 2** đã xanh `pytest`; hoàn thiện Video Demo, bộ ảnh minh họa và Slide thuyết trình.
 
-### Thành viên 3 · Giải đấu chuẩn cuối kỳ, Giao diện Web 1-Click & Deploy, Level 7 (MCTS + CNN), Notebook Phân tích & Quản trị GitHub
+### Thành viên 3 · Giải đấu chuẩn, Giao diện Web, Level 7 (`mcts_cnn`), Poster & Hồ sơ nộp
 
-- **PR 2 — `feat/eval-suite` (Đã triển khai & hợp nhất).**
-  - Đã merge `feat/arena` vào `main` (PR #7) và nâng cấp `arena/round_robin.py` (PR #8): hỗ trợ giải đấu **≥ 100 ván/cặp** ở cả 2 chế độ `compute` và `time`, tính `score`, khoảng tin cậy **Wilson 95%**, thời gian trung bình & **P95** tách riêng từng agent, thống kê `nodes`/`simulations`, ma trận đối đầu (`--matrix`) và thống kê lợi thế đi trước.
-- **PR 3 — `feat/notebooks` (Đã triển khai cho 5 agent Level 1–5; mở rộng lên Level 7 & Ablation 2).**
-  - Xây dựng [notebooks/analysis.ipynb](notebooks/analysis.ipynb) và bộ hình minh họa trong `notebooks/figures/` đọc trực tiếp từ `logs/*.jsonl` (ma trận đối đầu, `score` + CI 95%, độ trễ P95, lợi thế đi trước, đường cong huấn luyện `cnn` và Ablation 1).
-- **PR 4 — `feat/web-deploy` (Giao diện đồ họa Người–Máy & Máy–Máy trên Web, Chạy 1-Click & Deploy không cần Docker — Đã triển khai & hợp nhất ở PR #11).**
-  - Đảm nhận toàn bộ phần **Giao diện đồ họa tương tác Người–Máy & Máy–Máy** thông qua máy chủ [ui/web_app.py](ui/web_app.py) (`ThreadingHTTPServer` chuẩn Python, không thêm dependency ngoài) và giao diện lưới ô vuông [ui/web_index.html](ui/web_index.html) kèm bộ kiểm thử [tests/test_web_app.py](tests/test_web_app.py): chọn mọi cấp độ AI trong `registry`, chọn quân X/O, xem trực quan từng bước, thống kê trực tiếp và lưu/xem lại/tải log lịch sử trận đấu (`logs/web_matches.jsonl`).
-  - Cung cấp bộ khởi chạy 1 lần nhấp chuột [run_caro.bat](run_caro.bat) (Windows) / [run_caro.sh](run_caro.sh) (macOS/Linux) tự kiểm tra `.venv` và mở trình duyệt, cùng cấu hình [render.yaml](render.yaml) để deploy Web trực tiếp lên Render không cần Docker.
-- **PR 5 — `feat/mcts-cnn` (Level 7 AlphaGo/AlphaZero-inspired: Tích hợp mạng CNN Policy–Value dẫn hướng cây MCTS theo PUCT).**
-  - Xây dựng tác tử `mcts_cnn` kết hợp đầu `policy` (xác suất tiên nghiệm `P(s, a)`) và đầu `value` (`V(s) ∈ [-1, 1]` thay rollout ngẫu nhiên) từ checkpoint `checkpoints/cnn_9x9.pt` vào cây tìm kiếm PUCT có kiểm tra thắng/chặn chiến thuật và hỗ trợ `time_limit`; so sánh trực tiếp `cnn` đơn thuần (`policy-only`) với `mcts_cnn` (`policy + value + MCTS`) để trả lời trọn vẹn **RQ2**.
-- **Quản trị GitHub, Kiểm định tái lập & Tổng hợp hồ sơ nộp (Nhóm trưởng/Điều phối).**
-  - Mở đầy đủ **GitHub Issues / Projects** gắn nhãn và phân công cho từng PR của 3 thành viên; duy trì lịch sử commit đều đặn hàng tuần và kiểm tra **GitHub Insights** (không dồn code lên sát hạn nộp).
-  - Kiểm thử chạy lại toàn bộ dự án trên môi trường ảo sạch từ đầu theo đúng `README.md` (cài gói → `pytest` → sinh dữ liệu/train mẫu hoặc nạp checkpoint → chạy round-robin → mở CLI & Web 1-Click).
-  - Viết Chương 1 (giới thiệu, mô hình hóa bài toán, câu hỏi nghiên cứu), Chương 2–3 (phần kiến trúc hệ thống, Arena, giao diện Web/Deploy & tích hợp Level 7 PUCT MCTS+CNN), Chương 4 (tổng hợp kết quả thực nghiệm & thảo luận), Chương 5 (kết luận & hướng phát triển); kiểm tra trích dẫn học thuật; in ấn **01 cuốn báo cáo + slide + poster** và đóng gói file ZIP nộp bài.
-- **Nghiệm thu TV3:** Log thi đấu thô ≥ 100 ván/cặp ở cả 2 chế độ ngân sách khớp tuyệt đối với bảng/biểu đồ xuất từ `notebooks/`; giao diện Web 1-Click chọn được đủ các cấp AI; `mcts_cnn` vượt rõ rệt `mcts` và `cnn` đơn lẻ; toàn bộ sản phẩm trong checklist nộp bài chạy lại không lỗi.
+- **PR 2 — `feat/eval-suite` (Đã triển khai & hợp nhất ở PR #7, #8, #12).**
+  - Xây dựng `arena/round_robin.py` hỗ trợ 2 chế độ ngân sách (`compute` & `time`), Wilson 95% CI, độ trễ P95, ma trận đối đầu và chạy giải đấu chuẩn 2.000 ván.
+- **PR 3 — `feat/notebooks` (Đã triển khai & hợp nhất ở PR #8, #12).**
+  - Xây dựng [notebooks/analysis.ipynb](notebooks/analysis.ipynb) và xuất 4 bộ biểu đồ PNG trong `notebooks/figures/` từ log JSONL.
+- **PR 4 — `feat/web-deploy` (Đã triển khai & hợp nhất ở PR #11, #13).**
+  - Xây dựng giao diện Web Người–Máy & Máy–Máy ([ui/web_app.py](ui/web_app.py), [ui/web_index.html](ui/web_index.html), [tests/test_web_app.py](tests/test_web_app.py)), script khởi chạy [run_caro.bat](run_caro.bat) / [run_caro.sh](run_caro.sh) và cấu hình [render.yaml](render.yaml).
+- **PR 5 — `feat/mcts-cnn` (Đã triển khai & hợp nhất ở PR #13).**
+  - Xây dựng tác tử Level 7 [agents/mcts_cnn.py](agents/mcts_cnn.py) (PUCT + Policy–Value CNN) và chuẩn hóa cấu trúc thư mục `tests/`.
+- **Nhiệm vụ trọng tâm còn lại — Poster, Quản trị GitHub & Đóng gói nộp bài (Nhóm trưởng):**
+  - Thiết kế **Poster** giới thiệu đề tài; rà soát **GitHub Issues / Insights**; kiểm thử chạy lại toàn bộ dự án từ đầu; tổng hợp đủ sản phẩm từ TV1 (Báo cáo 5 chương) & TV2 (Video + Slide), điền bảng thông tin thành viên, in ấn học liệu bảo vệ và đóng gói **01 file ZIP nộp bài** đại diện nhóm.
+- **Nghiệm thu TV3:** Toàn bộ mã nguồn, thực nghiệm, giao diện Web, Level 7 và biểu đồ đã xanh `127 passed`; hoàn thiện Poster và gói ZIP nộp cuối kỳ đúng chuẩn.
 
 ### Danh sách thành viên và tỷ lệ đóng góp (Cập nhật trước khi nộp)
 
@@ -254,9 +247,9 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 
 | STT | Họ và tên | MSSV | Tài khoản GitHub | Nhiệm vụ & công việc thực hiện chính | Tỷ lệ đóng góp (%) |
 | :-: | --- | --- | --- | --- | --: |
-| 1 | *(Điền họ tên TV1)* | *(Điền MSSV)* | *(Điền username)* | Level 2 (`heuristic`), Level 3 (`alphabeta` + đếm nút & ablation cắt tỉa), Level 5 (`cnn` + sinh dữ liệu & huấn luyện), Chương 2–3 báo cáo & nội dung Poster | 33.3% |
-| 2 | *(Điền họ tên TV2)* | *(Điền MSSV)* | *(Điền username)* | Level 4 (`mcts` + giới hạn thời gian & Ablation 2 theo số mô phỏng/`c`), CLI (`play_cli`), Video demo & ảnh tình huống chiến thuật, tùy chọn Level 6 (`rl`), Chương 2–3 (MCTS/CLI) & Slide thuyết trình | 33.3% |
-| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), Giao diện Web 1-Click & Deploy (`ui/web_app.py`, `ui/web_index.html`, `run_caro.bat`, `render.yaml`), Level 7 (`mcts_cnn` PUCT), `notebooks/` phân tích & biểu đồ, quản lý GitHub, Chương 1–5 & hồ sơ nộp | 33.4% |
+| 1 | *(Điền họ tên TV1)* | *(Điền MSSV)* | `nguyenmartin212-blip` | Level 2 (`heuristic`), Level 3 (`alphabeta` + đếm nút & Ablation 1), Level 5 (`cnn` + sinh dữ liệu & huấn luyện), **viết trọn bộ Báo cáo cuối kỳ 5 chương** | 33.3% |
+| 2 | *(Điền họ tên TV2)* | *(Điền MSSV)* | `3rAxis` | Level 4 (`mcts` + giới hạn thời gian & Ablation 2 960 ván), CLI (`play_cli`), **quay Video demo, chụp ảnh tình huống chiến thuật & làm Slide thuyết trình** | 33.3% |
+| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | `tuankiet248` | Engine `game/`, `arena/` (2.000 ván, 2 chế độ ngân sách, `p95`/CI), Giao diện Web (`ui/`), Level 7 (`mcts_cnn` PUCT), `notebooks/` & biểu đồ, **thiết kế Poster, quản lý GitHub & đóng gói hồ sơ nộp** | 33.4% |
 | **Tổng** | | | | **Toàn bộ các thành viên nắm rõ và giải thích được phần việc phụ trách** | **100%** |
 
 ## Quy ước triển khai
@@ -300,11 +293,11 @@ Lưu ý bắt buộc theo quy định quản lý mã nguồn của giảng viên
 | `arena/` | Đấu một ván (`play.py`) và giải đấu vòng tròn thống kê (`round_robin.py`) |
 | `train/` | Sinh dữ liệu chuyên gia và huấn luyện mạng CNN (`train_cnn.py`) |
 | `ui/` | Máy chủ và giao diện đồ họa Web (`web_app.py`, `web_index.html`) |
-| `scripts/` | Công cụ dòng lệnh CLI (`play_cli.py`, `quick_match.py`, `ablation_search.py`) |
-| `tests/` | Toàn bộ bộ kiểm thử tự động `pytest` cho engine, agent, arena, CLI và Web |
+| `scripts/` | Công cụ dòng lệnh CLI & Ablation (`play_cli.py`, `quick_match.py`, `ablation_search.py`, `ablation_mcts.py`, `summarize_mcts.py`) |
+| `tests/` | Toàn bộ 127 bài kiểm thử tự động `pytest` cho engine, agent, arena, CLI và Web |
 | `configs/`, `utils/` | Cấu hình trung tâm, quản lý `seed` và logger JSONL |
 | `logs/`, `checkpoints/`, `notebooks/` | Nhật ký thực nghiệm, trọng số đã train và notebook xuất biểu đồ |
-| `docs/`, `lab/` | Quy ước nhóm (`CONVENTIONS.md`), tài liệu tham khảo cục bộ và bài tập Lab môn học |
+| `docs/`, `lab/` | Quy ước nhóm (`CONVENTIONS.md`), thiết kế & kết quả MCTS (`MCTS_*.md`), tài liệu tham khảo và bài Lab |
 
 ## Nộp bài cuối kỳ
 

@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: caro-9x9-game-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install numpy pytest && pip install torch --index-url https://download.pytorch.org/whl/cpu
+    startCommand: python -X utf8 -m scripts.web_app --host 0.0.0.0 --no-browser
+    healthCheckPath: /healthz

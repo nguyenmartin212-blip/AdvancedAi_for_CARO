@@ -52,7 +52,7 @@ def test_backup_and_selection_use_alternating_perspectives():
     root.children = [opponent_win, child]
     root.visits = 2
     assert root.select(c=0) is child
-    # At the opponent's turn, they also choose their own best outcome.
+    # Đến lượt đối thủ, họ cũng chọn kết quả có lợi nhất cho mình.
     child.children = [leaf, _Node(1, [], visits=1, value=-1)]
     child.visits = 2
     assert child.select(c=0) is child.children[1]
@@ -74,7 +74,7 @@ def test_search_handles_last_move_draw_and_finished_game():
     assert agent.select_action(game) == 8
     game.step(8)
     assert game.done and game.winner == 0
-    with pytest.raises(ValueError, match="finished"):
+    with pytest.raises(ValueError, match="đã kết thúc"):
         agent.select_action(game)
 
 

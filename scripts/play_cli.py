@@ -1,4 +1,4 @@
-"""Play against a registered agent: python -m scripts.play_cli mcts --seed 0."""
+"""Chơi với bot trong registry: python -m scripts.play_cli mcts --seed 0."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ from utils.config import load_config
 
 
 def play(game: Gomoku, agent: Agent, human_player: int = 1) -> int:
-    """Run a terminal game; EOF or Ctrl+C exits cleanly without more moves."""
+    """Chạy ván cờ qua terminal; kết thúc đầu vào hoặc Ctrl+C sẽ dừng ván cờ."""
     print(game.render())
     try:
         while not game.done:
@@ -61,12 +61,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--seed", type=int, default=0, help="seed ngẫu nhiên (mặc định: 0)")
     parser.add_argument("--simulations", type=int, help="số mô phỏng MCTS cho mỗi nước")
     parser.add_argument("--c", type=float, help="hệ số khám phá UCT của MCTS")
+    parser.add_argument("--time-limit", type=float, help="ngân sách giây/nước cho MCTS (giới hạn mềm)")
     args = parser.parse_args(argv)
-    if args.bot != "mcts" and (args.simulations is not None or args.c is not None):
-        parser.error("--simulations và --c chỉ dùng với bot mcts")
+    if args.bot != "mcts" and (args.simulations is not None or args.c is not None or args.time_limit is not None):
+        parser.error("--simulations, --c và --time-limit chỉ dùng với bot mcts")
     cfg = load_config()
     params = dict(cfg["agents"].get(args.bot, {}))
-    for key in ("simulations", "c"):
+    for key in ("simulations", "c", "time_limit"):
         value = getattr(args, key)
         if value is not None:
             params[key] = value

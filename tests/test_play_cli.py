@@ -78,3 +78,23 @@ def test_cli_rejects_invalid_arguments(args):
     with pytest.raises(SystemExit) as error:
         main(args)
     assert error.value.code == 2
+
+
+def test_cli_passes_native_mcts_deadline(monkeypatch):
+    captured = {}
+    def capture(game, agent, human_player):
+        captured["bot"] = agent
+    monkeypatch.setattr("scripts.play_cli.play", capture)
+    main(["mcts", "--time-limit", "0.05", "--simulations", "1000"])
+    assert captured["bot"].time_limit == 0.05
+    assert captured["bot"].simulations == 1000
+
+
+@pytest.mark.parametrize("args", [
+    ["mcts", "--time-limit", "0"], ["mcts", "--time-limit", "nan"],
+    ["mcts", "--time-limit", "-1"], ["random", "--time-limit", "0.1"],
+])
+def test_cli_rejects_invalid_deadline(args):
+    with pytest.raises(SystemExit) as error:
+        main(args)
+    assert error.value.code == 2

@@ -169,7 +169,7 @@ def summarize(
                 n_moves = 1
 
             w_val = float(rec.get(w_key, 0.0) or 0.0)
-            if w_val > 0.0 and n_moves > 0:
+            if w_key in rec and w_val >= 0.0 and n_moves > 0:
                 work_totals[name] += w_val * n_moves
                 work_moves[name] += n_moves
 

@@ -1,0 +1,75 @@
+1
+00:00:00,000 --> 00:00:07,997
+Caro 9×9 theo luật freestyle: đủ 5 quân liên tiếp là thắng.
+
+2
+00:00:07,997 --> 00:00:20,659
+Giao diện Web: chọn chế độ Người đấu AI, đối thủ MCTS và cố định seed để kiểm chứng.
+
+3
+00:00:20,659 --> 00:00:26,407
+Người đi X, MCTS trả nước O qua cùng API và engine của dự án.
+
+4
+00:00:26,407 --> 00:00:43,249
+Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất.
+
+5
+00:00:43,249 --> 00:00:48,583
+Nút Hoàn tác cho phép quay lại trước lượt vừa đánh.
+
+6
+00:00:48,583 --> 00:00:53,302
+Có thể chọn quân O để AI đi trước.
+
+7
+00:00:53,302 --> 00:01:03,555
+Thế cờ kiểm thử: X có bốn quân trên hàng 4 và có thể thắng tại ô (4, 4).
+
+8
+00:01:03,555 --> 00:01:13,818
+MCTS đánh (4, 4), tạo năm quân liên tiếp và kết thúc ván ngay ở bước kiểm tra gốc.
+
+9
+00:01:13,818 --> 00:01:24,272
+Thế cờ kiểm thử: O đe dọa thắng trên hàng 0, chỉ còn một ô chặn tại (0, 4).
+
+10
+00:01:24,272 --> 00:01:34,399
+MCTS chặn tại (0, 4). Hai thế cờ kiểm thử dùng lịch sử hợp lệ và agent thật.
+
+11
+00:01:34,399 --> 00:01:47,480
+AI đấu AI: X là MCTS, O là Heuristic; seed 0, hai nước khai cuộc, 400 mô phỏng cho MCTS.
+
+12
+00:01:47,480 --> 00:01:53,824
+Lịch sử Web cho phép mở lại log đã có để kiểm tra các tình huống AI bỏ sót chiến thuật.
+
+13
+00:01:53,824 --> 00:02:02,615
+Ván thực nghiệm MCTS thua Heuristic: năm quân O được tô rõ. Rollout ngẫu nhiên vẫn có thể bỏ sót chiến thuật.
+
+14
+00:02:02,615 --> 00:02:10,167
+CLI thực thi MCTS với ngân sách mềm 50 ms/nước. Nội dung bên trên được thu trực tiếp từ tiến trình Python.
+
+15
+00:02:10,167 --> 00:02:15,498
+Nhập sai định dạng: CLI yêu cầu nhập hai số nguyên cách nhau bằng dấu cách.
+
+16
+00:02:15,498 --> 00:02:20,234
+Tọa độ trên bàn 9×9 nằm trong khoảng 0–8. CLI cho nhập lại khi vượt phạm vi.
+
+17
+00:02:20,234 --> 00:02:29,528
+Sau nước hợp lệ, chương trình in lại bàn cờ và cho MCTS trả lời.
+
+18
+00:02:29,528 --> 00:02:54,599
+Số liệu lấy từ CSV đã đối chiếu log: tăng số mô phỏng làm tăng chi phí, nhưng mức cải thiện trước Heuristic còn nhỏ.
+
+19
+00:02:54,599 --> 00:03:00,317
+Rollout ngẫu nhiên còn yếu trước chiến thuật. Có thể đối chiếu thêm mcts_cnn trong cùng hệ thống.

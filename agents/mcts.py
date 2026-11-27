@@ -1,14 +1,18 @@
-"""UCT search with seeded random rollouts and root win/block checks.
+"""Tìm kiếm UCT với mô phỏng ngẫu nhiên có seed và kiểm tra thắng/chặn ở gốc.
 
-Each node stores total outcome from its *player to move*'s perspective.
-Selection therefore negates the child's mean; backup flips sign at every ply.
-Trees are rebuilt on each call, and all simulated moves use clones.
+Mỗi nút lưu tổng kết quả từ góc nhìn bên sắp đi tại nút đó.
+Khi chọn con, đổi dấu giá trị trung bình của con; khi cập nhật ngược, đổi dấu qua mỗi lượt.
+Cây được tạo lại sau mỗi lần gọi; mọi nước mô phỏng đều dùng bản sao.
+Khi đặt time_limit, bot áp dụng cả giới hạn số mô phỏng và giới hạn thời gian mềm.
+Kiểm tra chiến thuật ở gốc và mô phỏng đã bắt đầu có thể làm vượt thời gian yêu cầu.
+last_simulations đếm số mô phỏng đã hoàn tất; nước chiến thuật có giá trị 0.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
 import random
+import time
 
 from agents.base import Agent
 from agents.registry import register
@@ -32,7 +36,7 @@ class _Node:
 
 
 def _backup(path: list[_Node], outcome: float) -> None:
-    """Outcome is from the last node's player-to-move perspective."""
+    """Kết quả được tính từ góc nhìn bên sắp đi tại nút cuối."""
     for node in reversed(path):
         node.visits += 1
         node.value += outcome
@@ -54,19 +58,26 @@ class MCTSAgent(Agent):
     name = "mcts"
 
     def __init__(self, simulations: int = 100, c: float = 1.4,
-                 seed: int | None = None):
+                 seed: int | None = None, time_limit: float | None = None):
         if isinstance(simulations, bool) or not isinstance(simulations, int) or simulations < 1:
-            raise ValueError("simulations must be a positive integer")
+            raise ValueError("simulations phải là số nguyên dương")
         if not math.isfinite(c) or c < 0:
-            raise ValueError("c must be finite and non-negative")
+            raise ValueError("c phải hữu hạn và không âm")
+        if time_limit is not None and (isinstance(time_limit, bool)
+                                       or not math.isfinite(time_limit) or time_limit <= 0):
+            raise ValueError("time_limit phải là số hữu hạn lớn hơn 0")
+        self.time_limit = time_limit
+        self.last_simulations = 0
         self.simulations = simulations
         self.c = c
         self.rng = random.Random(seed)
 
     def select_action(self, game: Gomoku) -> int:
+        self.last_simulations = 0
+        deadline = None if self.time_limit is None else time.perf_counter() + self.time_limit
         actions = game.legal_actions()
         if not actions:
-            raise ValueError("No legal actions in a finished game")
+            raise ValueError("Ván cờ đã kết thúc, không còn nước đi hợp lệ")
         for player in (game.player, -game.player):
             action = _winning_action(game, player, actions)
             if action is not None:
@@ -74,15 +85,18 @@ class MCTSAgent(Agent):
 
         root = _Node(game.player, list(actions))
         for _ in range(self.simulations):
+            # Hoàn tất mô phỏng đã bắt đầu; kiểm tra thời hạn giữa hai lần mô phỏng.
+            if deadline is not None and time.perf_counter() >= deadline:
+                break
             state = game.clone()
             node = root
             path = [node]
-            # Selection: expanded nodes choose the opponent's worst outcome.
+            # Chọn nút: nút đã mở rộng ưu tiên kết quả bất lợi cho đối thủ.
             while not state.done and not node.untried:
                 node = node.select(self.c)
                 state.step(node.action)
                 path.append(node)
-            # Expansion: random order prevents a fixed low-index bias.
+            # Mở rộng: chọn thứ tự ngẫu nhiên để tránh thiên về ô có chỉ số nhỏ.
             if not state.done and node.untried:
                 index = self.rng.randrange(len(node.untried))
                 action = node.untried.pop(index)
@@ -91,14 +105,20 @@ class MCTSAgent(Agent):
                 node.children.append(child)
                 node = child
                 path.append(node)
-            # Rollout: shuffle once, then play until a win or draw.
+            # Mô phỏng: xáo trộn một lần rồi chơi đến khi thắng hoặc hòa.
             rollout = state.legal_actions()
             self.rng.shuffle(rollout)
             while not state.done:
                 state.step(rollout.pop())
             _backup(path, state.result(node.player))
 
-        # Robust child: visits first, then root-perspective average reward.
+            self.last_simulations += 1
+
+        # Kiểm tra ở gốc có thể dùng hết ngân sách nhỏ trước khi kịp mô phỏng.
+        if not root.children:
+            return self.rng.choice(actions)
+
+        # Ưu tiên con có nhiều lượt thăm nhất, rồi so điểm trung bình từ góc nhìn gốc.
         best = max(root.children, key=lambda child: (
             child.visits, -child.value / child.visits
         ))
@@ -107,5 +127,5 @@ class MCTSAgent(Agent):
 
 @register("mcts")
 def _make(simulations: int = 100, c: float = 1.4,
-          seed: int | None = None) -> MCTSAgent:
-    return MCTSAgent(simulations=simulations, c=c, seed=seed)
+          seed: int | None = None, time_limit: float | None = None) -> MCTSAgent:
+    return MCTSAgent(simulations=simulations, c=c, seed=seed, time_limit=time_limit)

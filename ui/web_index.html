@@ -291,7 +291,7 @@ async function doAiMove(agentName, token) {
     const data = await postJson("/api/step", { moves: state.moves, agent: agentName, seed: Number($("seed").value || 0) });
     if (token !== matchToken) return;
     (side === "X" ? curTimesX : curTimesO).push(data.elapsed_ms / 1000.0);
-    if (data.work > 0) (side === "X" ? curWorksX : curWorksO).push(data.work);
+    (side === "X" ? curWorksX : curWorksO).push(Number(data.work) || 0);
     state = data;
     $("st-time").textContent = `${data.elapsed_ms.toFixed(1)} ms`;
     $("st-work").textContent = data.work > 0 ? String(data.work) : "—";

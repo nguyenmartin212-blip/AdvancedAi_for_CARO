@@ -28,12 +28,12 @@ from utils.config import load_config
 from utils.logger import LOG_DIR, JsonlLogger
 
 _HTML_PATH = Path(__file__).resolve().parent / "web_index.html"
-_RUN_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+_RUN_NAME_RE = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,63}$")
 
 
 def _safe_run_name(name: str) -> str:
     if not isinstance(name, str) or not _RUN_NAME_RE.fullmatch(name):
-        raise ValueError("Tên file log chỉ được chứa chữ cái, chữ số, dấu gạch dưới hoặc gạch ngang.")
+        raise ValueError("Tên file log chỉ được chứa chữ cái, chữ số, dấu chấm, gạch dưới hoặc gạch ngang; không được bắt đầu bằng dấu chấm.")
     return name
 
 
@@ -161,13 +161,20 @@ def build_log_report(log_dir: Path, run_name: str | None = None) -> dict:
     log_dir.mkdir(parents=True, exist_ok=True)
     if run_name:
         _safe_run_name(run_name)
-    runs = sorted(p.stem for p in log_dir.glob("*.jsonl") if p.stat().st_size > 0)
+    # Chỉ đưa log ván cờ vào lịch sử, bỏ qua metadata và bảng tổng hợp thí nghiệm.
+    games_by_run = {}
+    for path in log_dir.glob("*.jsonl"):
+        records = [row for row in _read_jsonl(path)
+                   if isinstance(row, dict) and {"agent_x", "agent_o", "winner", "moves"} <= row.keys()]
+        if records:
+            games_by_run[path.stem] = records
+    runs = sorted(games_by_run)
     default_run = (
         "web_matches" if "web_matches" in runs
         else ("rr_compute_100" if "rr_compute_100" in runs else (runs[0] if runs else ""))
     )
     selected = run_name if (run_name in runs) else default_run
-    records = _read_jsonl(log_dir / f"{selected}.jsonl") if selected else []
+    records = games_by_run.get(selected, [])
     summary = summarize(records) if records else {}
     agents = list(summary.keys())
     lengths = [len(r.get("moves", [])) for r in records if isinstance(r.get("moves"), list)]

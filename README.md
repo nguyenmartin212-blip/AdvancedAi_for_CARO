@@ -72,7 +72,7 @@ Log thô nằm ở `logs/<run>_s<simulations>_c<c>_vs_<opponent>.jsonl`; `logs/<
 
 Run `mcts_sensitivity_40` đã hoàn tất 960 ván: MCTS thắng 40/40 trước Random ở mọi cấu hình; kết quả tốt nhất trước Heuristic là 3–0–37 tại 2.000 mô phỏng, `c=0.7`. Kiểm tra riêng 100 ván với deadline 50 ms có P95 50,99 ms.
 
-Kiểm thử toàn bộ dự án đạt 127 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm CNN và MCTS-CNN. Chạy lại bằng `python -m pytest -q` trong môi trường đã cài PyTorch.
+Kiểm thử toàn bộ dự án đạt 128 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm CNN và MCTS-CNN. Chạy lại bằng `python -m pytest -q` trong môi trường đã cài PyTorch.
 
 Thiết kế chi tiết ở [MCTS_DESIGN.md](docs/MCTS_DESIGN.md); kịch bản quay và nội dung trình bày ở [MCTS_DEMO.md](docs/MCTS_DEMO.md).
 
@@ -205,7 +205,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 1. **Bài toán & Câu hỏi nghiên cứu (Đã hoàn thành):** Đã phát biểu rõ **RQ1** và **RQ2** kèm phân tích không gian trạng thái Caro 9×9.
 2. **Tác tử học được & Nâng cao (Đã hoàn thành):** Đã hoàn thiện cả **Level 5 (`cnn`)** và **Level 7 (`mcts_cnn` PUCT)** dùng checkpoint đã huấn luyện [checkpoints/cnn_9x9.pt](checkpoints/cnn_9x9.pt) cùng đường cong học tập trong `notebooks/figures/`.
 3. **Đánh giá công bằng & 02 Ablation (Đã hoàn thành):** Đã hoàn tất giải đấu **2.000 ván** (`100` ván/cặp ở cả 2 chế độ `compute` và `time`), **Ablation 1** cho Minimax/Alpha-Beta (`scripts/ablation_search.py`) và **Ablation 2** 960 ván cho MCTS ([docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md)).
-4. **Giao diện đồ họa & Học liệu nộp cuối kỳ (Đang hoàn thiện học liệu):** Giao diện Web (`ui/web_app.py`, `ui/web_index.html`) và notebook biểu đồ (`notebooks/analysis.ipynb`) đã hoàn tất; nhóm chỉ còn hoàn thiện **Báo cáo cuối kỳ 5 chương (TV1)**, **Video demo + Slide (TV2)** và **Poster + Hồ sơ ZIP nộp bài (TV3)**.
+4. **Giao diện đồ họa & Học liệu nộp cuối kỳ (Đang hoàn thiện học liệu):** Giao diện Web (`ui/web_app.py`, `ui/web_index.html`) và notebook biểu đồ (`notebooks/analysis.ipynb`) đã hoàn tất; video, bộ ảnh và slide toàn dự án của TV2 nằm ở [docs/PROJECT_DEMO.md](docs/PROJECT_DEMO.md). Nhóm tiếp tục rà soát học liệu, hoàn thiện **Báo cáo cuối kỳ 5 chương (TV1)** và **Poster + Hồ sơ ZIP nộp bài (TV3)**.
 
 ### Thành viên 1 · Tối ưu/Ablation Tìm kiếm, Tác tử CNN (Level 5) & Viết Báo cáo cuối kỳ
 
@@ -223,9 +223,9 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
   - Bổ sung `time_limit` và `last_simulations` trong `agents/mcts.py`, tích hợp CLI & Arena; thực hiện **Ablation 2** (`scripts/ablation_mcts.py`, `scripts/summarize_mcts.py`, 960 ván trên lưới `simulations` ∈ `{100, 400, 1000, 2000}` × `c` ∈ `{0.7, 1.4, 2.0}`) cùng tài liệu [docs/MCTS_DESIGN.md](docs/MCTS_DESIGN.md) và [docs/MCTS_ABLATION.md](docs/MCTS_ABLATION.md).
 - **PR 4 (Tùy chọn cộng điểm) — `feat/rl` (Level 6 Self-play Policy Gradient theo Liu Ch. 13–15).**
   - Tùy chọn không bắt buộc (nhóm đã có Level 5 `cnn` và Level 7 `mcts_cnn`).
-- **Nhiệm vụ trọng tâm còn lại — Video Demo, Ảnh tình huống & Slide thuyết trình:**
-  - Quay **Video Demo** hoạt động thực tế của hệ thống trên giao diện Web và CLI theo kịch bản [docs/MCTS_DEMO.md](docs/MCTS_DEMO.md), chụp bộ ảnh thế cờ chiến thuật/lỗi điển hình của từng cấp AI, đồng thời thiết kế **Slide thuyết trình** và kịch bản trình diễn trực tiếp.
-- **Nghiệm thu TV2:** `time_limit` và **Ablation 2** đã xanh `pytest`; hoàn thiện Video Demo, bộ ảnh minh họa và Slide thuyết trình.
+- **Video demo, ảnh tình huống và slide thuyết trình:**
+  - Học liệu toàn dự án tại [docs/PROJECT_DEMO.md](docs/PROJECT_DEMO.md): video Web và CLI, bộ ảnh cho sáu agent đã triển khai, 18 slide có lời dẫn và nguồn đối chiếu, cùng kịch bản trình diễn trực tiếp. Các thế kiểm thử được ghi nhãn; kết quả đối kháng trích riêng từ notebook, README và log của từng run.
+- **Nghiệm thu TV2:** `time_limit` và **Ablation 2** đã xanh `pytest`; đã bổ sung video, ảnh chiến thuật và slide toàn dự án để nhóm rà soát trước khi bảo vệ.
 
 ### Thành viên 3 · Giải đấu chuẩn, Giao diện Web, Level 7 (`mcts_cnn`), Poster & Hồ sơ nộp
 

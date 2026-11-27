@@ -1,0 +1,41 @@
+Caro 9×9 theo luật freestyle: đủ 5 quân liên tiếp là thắng.
+
+Giao diện Web: chọn chế độ Người đấu AI, đối thủ MCTS và cố định seed để kiểm chứng.
+
+Người đi X, MCTS trả nước O qua cùng API và engine của dự án.
+
+Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất.
+
+Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất.
+
+Mỗi nước AI hiển thị thời gian suy nghĩ và số mô phỏng đã hoàn tất.
+
+Nút Hoàn tác cho phép quay lại trước lượt vừa đánh.
+
+Có thể chọn quân O để AI đi trước.
+
+Thế cờ kiểm thử: X có bốn quân trên hàng 4 và có thể thắng tại ô (4, 4).
+
+MCTS đánh (4, 4), tạo năm quân liên tiếp và kết thúc ván ngay ở bước kiểm tra gốc.
+
+Thế cờ kiểm thử: O đe dọa thắng trên hàng 0, chỉ còn một ô chặn tại (0, 4).
+
+MCTS chặn tại (0, 4). Hai thế cờ kiểm thử dùng lịch sử hợp lệ và agent thật.
+
+AI đấu AI: X là MCTS, O là Heuristic; seed 0, hai nước khai cuộc, 400 mô phỏng cho MCTS.
+
+Lịch sử Web cho phép mở lại log đã có để kiểm tra các tình huống AI bỏ sót chiến thuật.
+
+Ván thực nghiệm MCTS thua Heuristic: năm quân O được tô rõ. Rollout ngẫu nhiên vẫn có thể bỏ sót chiến thuật.
+
+CLI thực thi MCTS với ngân sách mềm 50 ms/nước. Nội dung bên trên được thu trực tiếp từ tiến trình Python.
+
+Nhập sai định dạng: CLI yêu cầu nhập hai số nguyên cách nhau bằng dấu cách.
+
+Tọa độ trên bàn 9×9 nằm trong khoảng 0–8. CLI cho nhập lại khi vượt phạm vi.
+
+Sau nước hợp lệ, chương trình in lại bàn cờ và cho MCTS trả lời.
+
+Số liệu lấy từ CSV đã đối chiếu log: tăng số mô phỏng làm tăng chi phí, nhưng mức cải thiện trước Heuristic còn nhỏ.
+
+Rollout ngẫu nhiên còn yếu trước chiến thuật. Có thể đối chiếu thêm mcts_cnn trong cùng hệ thống.

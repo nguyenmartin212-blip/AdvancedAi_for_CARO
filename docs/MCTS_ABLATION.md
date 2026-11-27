@@ -68,6 +68,6 @@ python -X utf8 -m arena.round_robin --agents mcts heuristic -n 100 --budget-mode
 
 Log tổng hợp và thông tin môi trường ở [mcts_sensitivity_40.jsonl](../logs/mcts_sensitivity_40.jsonl); bảng cho notebook ở [mcts_sensitivity_40.csv](../logs/mcts_sensitivity_40.csv). Mỗi cấu hình có log ván riêng theo tên `mcts_sensitivity_40_s<S>_c<C>_vs_<opponent>.jsonl`. Runner từ chối tên run đã tồn tại để tránh gộp thêm ván vào kết quả cũ.
 
-Kiểm thử toàn bộ dự án đạt 127 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm đầy đủ các module CNN và MCTS-CNN. Thiết kế thuật toán và giới hạn mềm của deadline được mô tả trong [MCTS_DESIGN.md](MCTS_DESIGN.md).
+Kiểm thử toàn bộ dự án đạt 128 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm đầy đủ các module CNN và MCTS-CNN. Thiết kế thuật toán và giới hạn mềm của deadline được mô tả trong [MCTS_DESIGN.md](MCTS_DESIGN.md).
 
 Toàn bộ 1.060 ván đã được phát lại thành công để đối chiếu trạng thái kết thúc. Số ván, kết quả và 480 cặp khai cuộc đổi bên của Ablation 2 khớp với log.

@@ -1,0 +1,17 @@
+{
+  "codec": "mp4v",
+  "fps": 12.0,
+  "frames": 2164,
+  "duration_seconds": 180.33333333333334,
+  "width": 1280,
+  "height": 720,
+  "bytes": 23711569,
+  "sampled_seconds": [
+    5,
+    45,
+    85,
+    120,
+    150,
+    175
+  ]
+}

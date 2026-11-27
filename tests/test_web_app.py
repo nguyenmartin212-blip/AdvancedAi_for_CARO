@@ -7,7 +7,7 @@ import urllib.request
 
 import pytest
 
-from ui.web_app import create_server
+from ui.web_app import build_log_report, create_server
 
 
 @pytest.fixture()
@@ -24,7 +24,8 @@ def web_url(tmp_path):
 
 
 def _get_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=5) as resp:
+    # Lần đọc danh sách bot đầu tiên có thể phải nạp PyTorch và checkpoint.
+    with urllib.request.urlopen(url, timeout=30) as resp:
         assert resp.status == 200
         return json.loads(resp.read().decode("utf-8"))
 
@@ -154,3 +155,20 @@ def test_log_game_move_history_and_safe_download(web_url):
     with pytest.raises(urllib.error.HTTPError) as bad_dl:
         urllib.request.urlopen(f"{web_url}/api/download_log?run=../secret", timeout=5)
     assert bad_dl.value.code == 400
+
+
+def test_log_report_accepts_decimal_names_and_ignores_experiment_metadata(tmp_path):
+    (tmp_path / "ablation_summary.jsonl").write_text(
+        json.dumps({"event": "metadata", "seed": 0}) + "\n", encoding="utf-8")
+    name = "mcts_s100_c0.7_vs_heuristic"
+    moves = [0, 9, 1, 10, 2, 11, 3, 12, 4]
+    game = {"run": name, "agent_x": "mcts", "agent_o": "heuristic",
+            "winner": 1, "moves": moves, "seed": 0}
+    (tmp_path / (name + ".jsonl")).write_text(json.dumps(game) + "\n", encoding="utf-8")
+    report = build_log_report(tmp_path, name)
+    assert report["runs"] == [name]
+    assert report["total_games"] == 1
+    assert report["summary"]["mcts"]["wins"] == 1
+    assert report["recent_games"][0]["moves"] == moves
+    with pytest.raises(ValueError):
+        build_log_report(tmp_path, "../outside")

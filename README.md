@@ -74,7 +74,7 @@ Log thô nằm ở `logs/<run>_s<simulations>_c<c>_vs_<opponent>.jsonl`; `logs/<
 
 Run `mcts_sensitivity_40` đã hoàn tất 960 ván: MCTS thắng 40/40 trước Random ở mọi cấu hình; kết quả tốt nhất trước Heuristic là 3–0–37 tại 2.000 mô phỏng, `c=0.7`. Kiểm tra riêng 100 ván với deadline 50 ms có P95 50,99 ms.
 
-Kiểm thử toàn bộ dự án đạt 127 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm CNN và MCTS-CNN. Chạy lại bằng `python -m pytest -q` trong môi trường đã cài PyTorch.
+Kiểm thử toàn bộ dự án đạt 128 test trên Python 3.13.2, NumPy 2.3.3 và PyTorch 2.13.0+cpu, bao gồm CNN và MCTS-CNN. Chạy lại bằng `python -m pytest -q` trong môi trường đã cài PyTorch.
 
 Thiết kế chi tiết ở [MCTS_DESIGN.md](docs/MCTS_DESIGN.md); kịch bản quay và nội dung trình bày ở [MCTS_DEMO.md](docs/MCTS_DEMO.md).
 

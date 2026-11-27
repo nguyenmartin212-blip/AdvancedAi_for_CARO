@@ -10,7 +10,15 @@
   - **RQ1:** Trên bàn Caro 9×9, trong cùng ngân sách thời gian suy nghĩ mỗi nước (`~50–65 ms/nước`), MCTS/UCT với rollout ngẫu nhiên có vượt Minimax + Alpha-Beta dùng hàm lượng giá cửa sổ `4^n` hay không?
   - **RQ2:** Tác tử học từ dữ liệu/tự chơi (Level 5 CNN / Level 6 RL) cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi tích hợp dẫn hướng cho cây MCTS?
 
-## Chạy bản hiện tại
+## Chạy nhanh 1-Click & Web Deploy (Không cần Docker)
+
+Không cần cài Docker hay cấu hình thủ công:
+
+- **Windows (1-Click):** Nháy đúp trực tiếp file [run_caro.bat](run_caro.bat) tại thư mục gốc. Script tự tạo `.venv` (nếu chưa có), cài gói tối thiểu và mở trình duyệt với bàn cờ Caro 9×9 hỗ trợ cả **Người đấu AI** (chọn quân X/O, hoàn tác) và **AI đấu AI** (tự chọn 2 agent bất kỳ đối đầu tự động hoặc đi từng bước).
+- **macOS / Linux:** Chạy `bash run_caro.sh` (hoặc gọi trực tiếp `.\.venv\Scripts\python.exe -X utf8 -m scripts.web_app`).
+- **Deploy đám mây miễn phí (không cần Docker):** Đẩy repo lên GitHub rồi kết nối trực tiếp với **Render.com** (*New → Blueprint / Web Service*); file [render.yaml](render.yaml) tự cài bản Python + PyTorch CPU nhẹ và khởi chạy máy chủ tại `0.0.0.0:$PORT` kèm health-check `/healthz`.
+
+## Chạy qua dòng lệnh (CLI & Kiểm thử)
 
 Cần Python 3.10 trở lên. Mở PowerShell tại thư mục gốc của repo rồi chạy:
 
@@ -181,6 +189,9 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
   - Đã merge `feat/arena` vào `main` (PR #7) và nâng cấp `arena/round_robin.py`: hỗ trợ giải đấu **≥ 100 ván/cặp** ở cả 2 chế độ `compute` và `time`, tính `score`, khoảng tin cậy **Wilson 95%**, thời gian trung bình & **P95** tách riêng từng agent, thống kê `nodes`/`simulations` (tự động nhận `last_nodes`/`last_simulations`/`time_limit` khi TV1 và TV2 hợp nhất PR), ma trận đối đầu (`--matrix`) và thống kê lợi thế đi trước.
 - **PR 3 — `feat/notebooks` (Đã khởi tạo & xuất biểu đồ cho Level 1–4; mở rộng khi có log train/ablation).**
   - Đã tạo [notebooks/analysis.ipynb](notebooks/analysis.ipynb) và bộ hình minh họa trong `notebooks/figures/` từ 1.200 ván thực nghiệm (`rr_compute_100.jsonl`, `rr_time_100.jsonl`); bổ sung thêm biểu đồ đường cong huấn luyện Level 5/6 và 02+ ablation ngay khi TV1, TV2 hoàn tất.
+- **PR 4 — `feat/web-deploy` (Đơn giản hóa chạy 1-Click & Deploy Web không dùng Docker — Đã triển khai).**
+  - Xây dựng máy chủ [scripts/web_app.py](scripts/web_app.py) (`ThreadingHTTPServer` chuẩn Python, không thêm dependency ngoài) tách riêng giao diện lưới ô vuông [ui/web_index.html](ui/web_index.html) kèm bộ kiểm thử [scripts/test_web_app.py](scripts/test_web_app.py): tự động nạp mọi agent khả dụng trong `registry`, hỗ trợ trực quan **Người đấu AI** và **AI đấu AI** kèm lưu/xem lại/tải log lịch sử trận đấu (`logs/web_matches.jsonl`).
+  - Cung cấp bộ khởi chạy 1 lần nhấp chuột [run_caro.bat](run_caro.bat) (Windows) / [run_caro.sh](run_caro.sh) (macOS/Linux) tự kiểm tra `.venv` và mở trình duyệt, cùng cấu hình [render.yaml](render.yaml) để deploy Web trực tiếp lên Render không cần Docker.
 - **Quản trị GitHub, Kiểm định tái lập & Tổng hợp hồ sơ nộp (Nhóm trưởng/Điều phối).**
   - Mở đầy đủ **GitHub Issues / Projects** gắn nhãn và phân công cho từng PR của 3 thành viên; duy trì lịch sử commit đều đặn hàng tuần và kiểm tra **GitHub Insights** (không dồn code lên sát hạn nộp).
   - Kiểm thử chạy lại toàn bộ dự án trên môi trường ảo sạch từ đầu theo đúng `README.md` (cài gói → `pytest` → sinh dữ liệu/train mẫu hoặc nạp checkpoint → chạy round-robin → mở CLI & Pygame).
@@ -195,7 +206,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 | :-: | --- | --- | --- | --- | --: |
 | 1 | *(Điền họ tên TV1)* | *(Điền MSSV)* | *(Điền username)* | Level 2 (`heuristic`), Level 3 (`alphabeta` + đếm nút & ablation cắt tỉa), Level 5 (`cnn` + sinh dữ liệu & huấn luyện), Chương 2–3 báo cáo & nội dung Poster | 33.4% |
 | 2 | *(Điền họ tên TV2)* | *(Điền MSSV)* | *(Điền username)* | Level 4 (`mcts` + giới hạn thời gian & ablation số mô phỏng), CLI (`play_cli`), Giao diện `ui/` (Pygame Người–Máy & Máy–Máy), Video demo, Level 6/7 (nếu mở rộng), Chương 2–3 & Slide | 33.3% |
-| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), `notebooks/` phân tích & biểu đồ, quản lý Issues/PR/GitHub, Chương 1, 4, 5 & đóng gói hồ sơ nộp | 33.3% |
+| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), `notebooks/` phân tích & biểu đồ, chạy 1-Click (`run_caro.bat`) & Web Deploy không Docker (`scripts/web_app.py`, `render.yaml`), quản lý GitHub, Chương 1, 4, 5 & hồ sơ nộp | 33.3% |
 | **Tổng** | | | | **Toàn bộ các thành viên nắm rõ và giải thích được phần việc phụ trách** | **100%** |
 
 ## Quy ước triển khai

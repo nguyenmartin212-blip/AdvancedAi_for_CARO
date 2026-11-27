@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caro 9×9 – Multi-level Game AI</title>
+<style>
+  :root { --bg: #f4f6f8; --card: #ffffff; --ink: #111111; --muted: #57606a; --accent: #1d6f5e; --border: #d0d7de; --x-red: #d91e18; --o-black: #111111; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1060px; margin: 18px auto; padding: 0 14px; display: grid; grid-template-columns: minmax(320px, 490px) 1fr; gap: 18px; align-items: start; }
+  .full { grid-column: 1 / -1; }
+  @media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; }
+  h1 { font-size: 1.2rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 0.86rem; margin: 0 0 10px; }
+  .status { padding: 9px 12px; border-radius: 8px; font-weight: 600; background: #eef6f4; color: #134e42; margin-bottom: 12px; }
+  .status.win { background: #fff3cd; color: #664d03; }
+
+  .board-frame { display: grid; grid-template-columns: 22px 1fr; grid-template-rows: 22px 1fr; gap: 4px; max-width: 450px; margin: 0 auto; user-select: none; }
+  .col-coords { grid-column: 2; display: grid; grid-template-columns: repeat(9, 1fr); text-align: center; font-size: 0.78rem; font-weight: 600; color: var(--muted); align-items: center; }
+  .row-coords { grid-row: 2; display: grid; grid-template-rows: repeat(9, 1fr); text-align: center; font-size: 0.78rem; font-weight: 600; color: var(--muted); align-items: center; }
+  .grid { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(9, 1fr); aspect-ratio: 1 / 1; background: #111111; border: 2px solid #111111; gap: 1.5px; }
+  .cell { background: #ffffff; border: 0; padding: 0; margin: 0; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; font-size: clamp(1.25rem, 3.3vw, 1.85rem); font-weight: 800; line-height: 1; cursor: pointer; position: relative; font-family: "Segoe UI", Arial, sans-serif; }
+  .cell:hover:not(:disabled) { background: #f0f4f8; }
+  .cell:disabled { cursor: default; }
+  .cell.x { color: var(--x-red); }
+  .cell.o { color: var(--o-black); }
+  .cell.last { background: #fff8db; box-shadow: inset 0 0 0 2.5px #f59f00; }
+  .cell.win { background: #ffe3e3; box-shadow: inset 0 0 0 2.5px var(--x-red); }
+  .cell small { position: absolute; bottom: 2px; right: 3px; font-size: 0.6rem; font-weight: 600; color: #8c959f; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  select, input, button.ctrl { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem; background: #fff; }
+  .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  button.ctrl { cursor: pointer; font-weight: 600; background: #f8f9fa; }
+  button.ctrl:hover:not(:disabled) { background: #eaeef2; }
+  button.ctrl.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.ctrl:disabled { opacity: 0.5; cursor: not-allowed; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; text-align: center; }
+  .stat { background: #f8fafb; border: 1px solid var(--border); border-radius: 8px; padding: 7px 6px; }
+  .stat b { display: block; font-size: 0.98rem; }
+  .stat span { font-size: 0.74rem; color: var(--muted); }
+  .log { height: 195px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; background: #fafbfc; }
+  .log div { padding: 2px 0; border-bottom: 1px dashed #eaeef2; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 6px; }
+  th, td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; font-weight: 600; }
+  th { background: #f8fafb; color: var(--muted); font-size: 0.76rem; text-transform: uppercase; }
+  .pill { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #eef6f4; color: #134e42; font-size: 0.78rem; font-weight: 600; margin: 0 6px 4px 0; }
+  .scroll-x { overflow-x: auto; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Caro (Gomoku) 9×9 – Multi-level AI</h1>
+    <p class="sub">Luật freestyle: đủ 5 ô liên tiếp là thắng · <b style="color:#d91e18">X (Đỏ)</b> đi trước, <b>O (Đen)</b> đi sau.</p>
+    <div id="status" class="status">Đang tải cấu hình...</div>
+    <div class="board-frame">
+      <div id="col-coords" class="col-coords"></div>
+      <div id="row-coords" class="row-coords"></div>
+      <div id="grid" class="grid" role="grid" aria-label="Bàn cờ Caro 9x9"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="mode">Chế độ chơi</label>
+        <select id="mode">
+          <option value="human">Người đấu AI</option>
+          <option value="aivai">AI đấu AI (Tự động / Từng bước)</option>
+        </select>
+      </div>
+      <div>
+        <label for="seed">Seed (<input id="lock-seed" type="checkbox" style="width:auto;vertical-align:middle;margin:0 3px">Cố định)</label>
+        <input id="seed" type="number" value="0" step="1">
+      </div>
+    </div>
+
+    <div id="human-opts" class="row">
+      <div>
+        <label for="human-side">Quân của bạn</label>
+        <select id="human-side">
+          <option value="1">X màu Đỏ (Đi trước)</option>
+          <option value="-1">O màu Đen (Đi sau)</option>
+        </select>
+      </div>
+      <div>
+        <label for="ai-opp">Đối thủ AI</label>
+        <select id="ai-opp"></select>
+      </div>
+    </div>
+
+    <div id="aivai-opts" class="row hidden">
+      <div>
+        <label for="agent-x">Agent cầm X (Đỏ)</label>
+        <select id="agent-x"></select>
+      </div>
+      <div>
+        <label for="agent-o">Agent cầm O (Đen)</label>
+        <select id="agent-o"></select>
+      </div>
+    </div>
+
+    <div id="speed-row" class="row hidden">
+      <div>
+        <label for="opening">Khai cuộc AI đấu AI</label>
+        <select id="opening">
+          <option value="2" selected>2 nước ngẫu nhiên (chuẩn Arena)</option>
+          <option value="4">4 nước ngẫu nhiên</option>
+          <option value="0">Bàn trống (0 nước)</option>
+        </select>
+      </div>
+      <div>
+        <label for="delay">Tốc độ xem</label>
+        <select id="delay">
+          <option value="80">Nhanh (80 ms)</option>
+          <option value="300" selected>Vừa (300 ms)</option>
+          <option value="750">Chậm (750 ms)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="btn-new" class="ctrl primary">Ván mới</button>
+      <button id="btn-auto" class="ctrl hidden">Tạm dừng</button>
+      <button id="btn-step" class="ctrl hidden">Đi 1 nước AI</button>
+      <button id="btn-undo" class="ctrl">Hoàn tác</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="st-moves">0</b><span>Tổng số nước</span></div>
+      <div class="stat"><b id="st-time">0 ms</b><span>Thời gian nước AI</span></div>
+      <div class="stat"><b id="st-work">—</b><span>Nodes / Sims</span></div>
+    </div>
+
+    <label>Nhật ký nước đi</label>
+    <div id="log" class="log"></div>
+  </div>
+
+  <div class="card full">
+    <div class="row" style="align-items:end;grid-template-columns:1.2fr 1fr 0.9fr auto auto;">
+      <div>
+        <h1 style="margin-bottom:2px">Thống kê & Lịch sử các ván đánh trên Web</h1>
+        <p class="sub" style="margin:0">Tự động lưu vào <code>logs/web_matches.jsonl</code> (kèm xem lại từng nước & tải file JSONL).</p>
+      </div>
+      <div>
+        <label for="log-run">Bộ dữ liệu (`logs/*.jsonl`)</label>
+        <select id="log-run"></select>
+      </div>
+      <div>
+        <label for="batch-n">Đấu nhanh cặp AI (đổi bên)</label>
+        <select id="batch-n">
+          <option value="10" selected>10 ván (5 cặp X/O)</option>
+          <option value="20">20 ván (10 cặp X/O)</option>
+          <option value="40">40 ván (20 cặp X/O)</option>
+        </select>
+      </div>
+      <div><button id="btn-batch" class="ctrl primary" style="white-space:nowrap">Chạy thống kê nhanh</button></div>
+      <div><button id="btn-dl" class="ctrl" style="white-space:nowrap">Tải Log (.jsonl)</button></div>
+    </div>
+
+    <div id="stats-pills" style="margin:6px 0"></div>
+    <div class="scroll-x">
+      <table>
+        <thead>
+          <tr><th>Agent</th><th>Số ván</th><th>Thắng</th><th>Hòa</th><th>Thua</th><th>% Thắng</th><th>Score</th><th>CI 95%</th><th>TB (ms)</th><th>P95 (ms)</th><th>Nodes/Sims</th></tr>
+        </thead>
+        <tbody id="stats-tbody"></tbody>
+      </table>
+    </div>
+    <div id="h2h-wrap" class="scroll-x" style="margin-top:12px"></div>
+    <div id="history-wrap" class="scroll-x" style="margin-top:12px;max-height:260px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LOCAL_HIST_KEY = "caro_web_matches_backup_v1";
+
+let SIZE = 9, cells = [], state = { moves: [], player: 1, winner: 0, done: false, last_action: null, winning_cells: [] };
+let busy = false, autoRunning = false, matchToken = 0, loggedCurrentGame = false;
+let curTimesX = [], curTimesO = [], curWorksX = [], curWorksO = [], curMoveLog = [], recentGamesCache = [];
+
+async function postJson(url, body) {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Lỗi máy chủ");
+  return data;
+}
+
+function buildGrid(n) {
+  $("col-coords").innerHTML = Array.from({ length: n }, (_, i) => `<span>${i}</span>`).join("");
+  $("row-coords").innerHTML = Array.from({ length: n }, (_, i) => `<span>${i}</span>`).join("");
+  const grid = $("grid");
+  grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  grid.innerHTML = "";
+  cells = Array.from({ length: n * n }, (_, act) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cell";
+    btn.title = `Ô (${Math.floor(act / n)}, ${act % n})`;
+    btn.addEventListener("click", () => onCellClick(act));
+    grid.appendChild(btn);
+    return btn;
+  });
+}
+
+function renderBoard() {
+  const winSet = new Set((state.winning_cells || []).map(([r, c]) => r * SIZE + c));
+  const moveOrder = new Map(state.moves.map((act, idx) => [act, idx]));
+  cells.forEach((btn, act) => {
+    const idx = moveOrder.get(act);
+    if (idx === undefined) {
+      btn.className = "cell";
+      btn.innerHTML = "";
+      btn.disabled = busy || state.done || $("mode").value !== "human";
+    } else {
+      const isX = idx % 2 === 0;
+      btn.className = "cell " + (isX ? "x" : "o") + (act === state.last_action ? " last" : "") + (winSet.has(act) ? " win" : "");
+      btn.innerHTML = `${isX ? "X" : "O"}<small>${idx + 1}</small>`;
+      btn.disabled = true;
+    }
+  });
+}
+
+function updateBanner(extra = "") {
+  $("st-moves").textContent = String(state.moves.length);
+  const el = $("status");
+  el.classList.toggle("win", state.done);
+  if (state.done) {
+    el.textContent = (state.winner === 1 ? "Kết thúc: Quân X (Đỏ) chiến thắng!" : state.winner === -1 ? "Kết thúc: Quân O (Đen) chiến thắng!" : "Kết thúc: Ván cờ Hòa!") + extra;
+    return;
+  }
+  const sideTxt = state.player === 1 ? "X (Đỏ)" : "O (Đen)";
+  el.textContent = (busy ? `AI đang suy nghĩ cho ${sideTxt}...` : `Đến lượt: ${sideTxt}`) + extra;
+}
+
+function appendLog(moveNo, side, label, act, ms = 0, work = 0, record = true) {
+  const r = Math.floor(act / SIZE), c = act % SIZE;
+  if (record) curMoveLog.push({ step: moveNo, side, actor: label, r, c, action: act, ms: Number(ms.toFixed(2)), work });
+  const div = document.createElement("div");
+  const perf = ms > 0 ? ` · ${ms.toFixed(1)} ms` + (work > 0 ? ` · ${work} nodes/sims` : "") : "";
+  div.textContent = `#${moveNo} ${side} (${label}): (${r}, ${c})${perf}`;
+  $("log").appendChild(div);
+  $("log").scrollTop = $("log").scrollHeight;
+}
+
+async function recordFinishedMatch() {
+  if (loggedCurrentGame || !state.moves.length) return;
+  loggedCurrentGame = true;
+  const isAi = $("mode").value === "aivai";
+  const hSide = Number($("human-side").value);
+  const entry = {
+    mode: $("mode").value,
+    agent_x: isAi ? $("agent-x").value : (hSide === 1 ? "human" : $("ai-opp").value),
+    agent_o: isAi ? $("agent-o").value : (hSide === -1 ? "human" : $("ai-opp").value),
+    winner: state.winner,
+    moves: state.moves,
+    seed: Number($("seed").value || 0),
+    times_x: curTimesX,
+    times_o: curTimesO,
+    work_x: curWorksX.length ? curWorksX.reduce((a, b) => a + b, 0) / curWorksX.length : 0,
+    work_o: curWorksO.length ? curWorksO.reduce((a, b) => a + b, 0) / curWorksO.length : 0,
+    move_log: curMoveLog,
+    ts: new Date().toISOString().slice(0, 19) + "Z",
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_HIST_KEY) || "[]");
+    saved.push(entry);
+    localStorage.setItem(LOCAL_HIST_KEY, JSON.stringify(saved.slice(-100)));
+  } catch (_) {}
+  try {
+    await postJson("/api/log_game", entry);
+    await refreshStats("web_matches");
+  } catch (_) {}
+}
+
+async function doAiMove(agentName, token) {
+  if (state.done || token !== matchToken) return;
+  busy = true;
+  renderBoard();
+  updateBanner(` [${agentName}]`);
+  try {
+    const side = state.player === 1 ? "X" : "O";
+    const data = await postJson("/api/step", { moves: state.moves, agent: agentName, seed: Number($("seed").value || 0) });
+    if (token !== matchToken) return;
+    (side === "X" ? curTimesX : curTimesO).push(data.elapsed_ms / 1000.0);
+    if (data.work > 0) (side === "X" ? curWorksX : curWorksO).push(data.work);
+    state = data;
+    $("st-time").textContent = `${data.elapsed_ms.toFixed(1)} ms`;
+    $("st-work").textContent = data.work > 0 ? String(data.work) : "—";
+    appendLog(state.moves.length, side, agentName, data.last_action, data.elapsed_ms, data.work);
+    if (state.done) await recordFinishedMatch();
+  } catch (err) {
+    $("status").textContent = "Lỗi: " + err.message;
+    autoRunning = false;
+  } finally {
+    if (token === matchToken) {
+      busy = false;
+      renderBoard();
+      updateBanner();
+    }
+  }
+}
+
+async function onCellClick(act) {
+  if ($("mode").value !== "human" || busy || state.done || state.player !== Number($("human-side").value)) return;
+  const token = matchToken;
+  busy = true;
+  renderBoard();
+  try {
+    const side = state.player === 1 ? "X" : "O";
+    state = await postJson("/api/step", { moves: state.moves, action: act, seed: Number($("seed").value || 0) });
+    if (token !== matchToken) return;
+    appendLog(state.moves.length, side, "bạn", state.last_action);
+    busy = false;
+    renderBoard();
+    updateBanner();
+    if (state.done) await recordFinishedMatch();
+    else await doAiMove($("ai-opp").value, token);
+  } catch (err) {
+    busy = false;
+    renderBoard();
+    $("status").textContent = "Lỗi: " + err.message;
+  }
+}
+
+async function loopAiVsAi(token) {
+  while (autoRunning && !state.done && token === matchToken) {
+    await doAiMove(state.player === 1 ? $("agent-x").value : $("agent-o").value, token);
+    if (!autoRunning || state.done || token !== matchToken) break;
+    await new Promise((r) => setTimeout(r, Number($("delay").value || 300)));
+  }
+  if (token === matchToken) {
+    autoRunning = false;
+    $("btn-auto").textContent = "Tiếp tục chạy";
+  }
+}
+
+async function startNewGame(advanceSeed = true) {
+  const token = ++matchToken;
+  busy = false;
+  loggedCurrentGame = false;
+  curTimesX = []; curTimesO = []; curWorksX = []; curWorksO = []; curMoveLog = [];
+  if (advanceSeed && !$("lock-seed").checked) $("seed").value = String(Math.floor(Math.random() * 100000));
+  state = { moves: [], player: 1, winner: 0, done: false, last_action: null, winning_cells: [] };
+  $("log").innerHTML = "";
+  $("st-time").textContent = "0 ms";
+  $("st-work").textContent = "—";
+
+  const isAi = $("mode").value === "aivai";
+  for (const [id, hide] of [["human-opts", isAi], ["aivai-opts", !isAi], ["speed-row", !isAi], ["btn-auto", !isAi], ["btn-step", !isAi], ["btn-undo", isAi]]) {
+    $(id).classList.toggle("hidden", hide);
+  }
+  renderBoard();
+  updateBanner();
+
+  if (isAi) {
+    const openCount = Number($("opening").value || 0);
+    if (openCount > 0) {
+      const data = await postJson("/api/step", { moves: [], opening_moves: openCount, seed: Number($("seed").value || 0) });
+      if (token !== matchToken) return;
+      state = data;
+      state.moves.forEach((act, i) => appendLog(i + 1, i % 2 === 0 ? "X" : "O", "khai cuộc", act));
+      renderBoard();
+      updateBanner();
+    }
+    autoRunning = true;
+    $("btn-auto").textContent = "Tạm dừng";
+    loopAiVsAi(token);
+  } else {
+    autoRunning = false;
+    if (Number($("human-side").value) === -1) doAiMove($("ai-opp").value, token);
+  }
+}
+
+function renderStats(report) {
+  const prev = $("log-run").value;
+  $("log-run").innerHTML = (report.runs || []).map((r) => `<option value="${esc(r)}">${esc(r === "web_matches" ? "web_matches (Các trận trên Web)" : r)}</option>`).join("");
+  if (report.selected) $("log-run").value = report.selected;
+  else if (prev) $("log-run").value = prev;
+
+  if (!report.total_games) {
+    $("stats-pills").innerHTML = `<span class="pill">Chưa có trận đấu nào</span>`;
+    $("stats-tbody").innerHTML = `<tr><td colspan="11" style="text-align:center;color:#57606a">Chơi hết 1 ván hoặc bấm "Chạy thống kê nhanh" để ghi dữ liệu.</td></tr>`;
+    $("h2h-wrap").innerHTML = "";
+    $("history-wrap").innerHTML = "";
+    return;
+  }
+  const adv = report.side_advantage;
+  $("stats-pills").innerHTML = [
+    report.log_file ? `<span class="pill">File: ${esc(report.log_file)}</span>` : "",
+    `<span class="pill">Tổng: ${report.total_games} trận</span>`,
+    `<span class="pill">Độ dài TB: ${report.avg_moves} nước (${report.min_moves}–${report.max_moves})</span>`,
+    `<span class="pill">X (Đỏ) thắng: ${adv.x_wins} (${(adv.x_win_rate * 100).toFixed(1)}%)</span>`,
+    `<span class="pill">O (Đen) thắng: ${adv.o_wins} (${(adv.o_win_rate * 100).toFixed(1)}%)</span>`,
+    `<span class="pill">Hòa: ${adv.draws} (${(adv.draw_rate * 100).toFixed(1)}%)</span>`,
+  ].join("");
+
+  const entries = Object.entries(report.summary || {}).sort((a, b) => b[1].score - a[1].score);
+  $("stats-tbody").innerHTML = entries.map(([name, s]) => `<tr>
+    <td>${esc(name)}</td><td>${s.games}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+    <td>${s.games ? ((s.wins / s.games) * 100).toFixed(1) + "%" : "0.0%"}</td>
+    <td><b>${s.score.toFixed(3)}</b></td><td>[${s.ci_low.toFixed(2)}, ${s.ci_high.toFixed(2)}]</td>
+    <td>${(s.time_per_move * 1000).toFixed(2)}</td><td>${(s.p95_time * 1000).toFixed(2)}</td>
+    <td>${s.work_per_move > 0 ? s.work_per_move.toFixed(1) : "—"}</td>
+  </tr>`).join("");
+
+  const names = entries.map((e) => e[0]), h2h = report.head_to_head || {};
+  $("h2h-wrap").innerHTML = (names.length >= 2 && Object.keys(h2h).length)
+    ? `<label>Ma trận đối đầu — Score (Thắng-Hòa-Thua)</label><table><thead><tr><th>Hàng \\ Cột</th>${names.map((b) => `<th>${esc(b)}</th>`).join("")}</tr></thead><tbody>${names.map((a) => `<tr><td>${esc(a)}</td>${names.map((b) => {
+        const c = a !== b && h2h[a] && h2h[a][b];
+        return c && c.games ? `<td><b>${c.score.toFixed(2)}</b> <span style="color:#57606a">(${c.wins}-${c.draws}-${c.losses})</span></td>` : `<td style="color:#9aa2ac">—</td>`;
+      }).join("")}</tr>`).join("")}</tbody></table>`
+    : "";
+
+  recentGamesCache = report.recent_games || [];
+  $("history-wrap").innerHTML = recentGamesCache.length
+    ? `<label>Lịch sử 50 ván gần nhất (bấm "Xem lại" để dựng lại bàn cờ)</label><table><thead><tr><th>Ván</th><th>Thời gian</th><th>X (Đỏ)</th><th>O (Đen)</th><th>Kết quả</th><th>Số nước</th><th>Seed</th><th>Xem lại</th></tr></thead><tbody>${recentGamesCache.map((g, i) => {
+        const winTxt = g.winner === 1 ? `X (${esc(g.agent_x)}) thắng` : g.winner === -1 ? `O (${esc(g.agent_o)}) thắng` : "Hòa";
+        return `<tr><td>#${g.index}</td><td>${esc((g.ts || "").replace("T", " ").replace("Z", " UTC") || "—")}</td><td>${esc(g.agent_x)}</td><td>${esc(g.agent_o)}</td><td><b>${winTxt}</b></td><td>${g.moves.length}</td><td>${g.seed}</td><td><button type="button" class="ctrl" style="padding:3px 9px;font-size:0.78rem" onclick="replayGame(${i})">Xem lại</button></td></tr>`;
+      }).join("")}</tbody></table>`
+    : "";
+}
+
+async function refreshStats(run = "") {
+  const res = await fetch(run ? `/api/logs?run=${encodeURIComponent(run)}` : "/api/logs");
+  if (res.ok) renderStats(await res.json());
+}
+
+window.replayGame = async (idx) => {
+  const g = recentGamesCache[idx];
+  if (!g || !Array.isArray(g.moves)) return;
+  matchToken += 1; autoRunning = false; busy = false; loggedCurrentGame = true;
+  $("btn-auto").textContent = "Tiếp tục chạy";
+  state = await postJson("/api/step", { moves: g.moves });
+  $("log").innerHTML = "";
+  if (Array.isArray(g.move_log) && g.move_log.length === g.moves.length) {
+    g.move_log.forEach((m) => appendLog(m.step, m.side, m.actor, m.action, m.ms || 0, m.work || 0, false));
+  } else {
+    g.moves.forEach((act, i) => appendLog(i + 1, i % 2 === 0 ? "X" : "O", i % 2 === 0 ? g.agent_x : g.agent_o, act, 0, 0, false));
+  }
+  renderBoard();
+  updateBanner(` [Xem lại ván #${g.index} · seed=${g.seed}]`);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+$("btn-new").addEventListener("click", () => startNewGame(true));
+$("mode").addEventListener("change", () => startNewGame(false));
+$("human-side").addEventListener("change", () => startNewGame(false));
+$("opening").addEventListener("change", () => startNewGame(true));
+$("log-run").addEventListener("change", () => refreshStats($("log-run").value));
+$("btn-dl").addEventListener("click", () => { window.location.href = `/api/download_log?run=${encodeURIComponent($("log-run").value || "web_matches")}`; });
+
+$("btn-auto").addEventListener("click", () => {
+  if ($("mode").value !== "aivai" || state.done) return;
+  autoRunning = !autoRunning;
+  $("btn-auto").textContent = autoRunning ? "Tạm dừng" : "Tiếp tục chạy";
+  if (autoRunning) loopAiVsAi(matchToken);
+});
+
+$("btn-step").addEventListener("click", async () => {
+  if ($("mode").value !== "aivai" || busy || state.done) return;
+  autoRunning = false;
+  $("btn-auto").textContent = "Tiếp tục chạy";
+  await doAiMove(state.player === 1 ? $("agent-x").value : $("agent-o").value, matchToken);
+});
+
+$("btn-undo").addEventListener("click", async () => {
+  if ($("mode").value !== "human" || busy || !state.moves.length) return;
+  const hSide = Number($("human-side").value);
+  let keep = state.moves.length - 1;
+  if (keep > 0 && ((keep % 2 === 0 ? 1 : -1) !== hSide)) keep -= 1;
+  state = await postJson("/api/step", { moves: state.moves.slice(0, Math.max(0, keep)) });
+  curMoveLog = curMoveLog.slice(0, state.moves.length);
+  loggedCurrentGame = false;
+  while ($("log").children.length > state.moves.length) $("log").removeChild($("log").lastChild);
+  renderBoard();
+  updateBanner();
+});
+
+$("btn-batch").addEventListener("click", async () => {
+  const a1 = $("mode").value === "aivai" ? $("agent-x").value : $("ai-opp").value;
+  let a2 = $("mode").value === "aivai" ? $("agent-o").value : "heuristic";
+  if (a1 === a2) a2 = Array.from($("agent-x").options).map((o) => o.value).find((v) => v !== a1) || a2;
+  const n = Number($("batch-n").value || 10);
+  $("btn-batch").disabled = true;
+  const old = $("btn-batch").textContent;
+  $("btn-batch").textContent = `Đang đấu ${n} ván...`;
+  try {
+    renderStats(await postJson("/api/series", { agents: [a1, a2], games_per_pair: n, opening_moves: Number($("opening").value || 2), seed: Math.floor(Math.random() * 100000), run: "web_matches" }));
+  } catch (err) {
+    $("status").textContent = "Lỗi thống kê: " + err.message;
+  } finally {
+    $("btn-batch").disabled = false;
+    $("btn-batch").textContent = old;
+  }
+});
+
+(async () => {
+  const info = await (await fetch("/api/info")).json();
+  SIZE = info.size;
+  buildGrid(SIZE);
+  for (const id of ["ai-opp", "agent-x", "agent-o"]) {
+    $(id).innerHTML = info.agents.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+  }
+  if (info.agents.includes("alphabeta")) { $("ai-opp").value = "alphabeta"; $("agent-x").value = "alphabeta"; }
+  if (info.agents.includes("heuristic")) $("agent-o").value = "heuristic";
+  else if (info.agents.length > 1) $("agent-o").value = info.agents[1];
+  await refreshStats();
+  startNewGame();
+})();
+</script>
+</body>
+</html>

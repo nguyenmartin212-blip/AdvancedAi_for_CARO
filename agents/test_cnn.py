@@ -9,7 +9,7 @@ from agents.cnn import CNNAgent, DEFAULT_CHECKPOINT
 from agents.registry import make_agent
 from arena.play import play_game
 from game.engine import Gomoku
-from train.train_cnn import generate_expert_games, split_and_deduplicate
+from train.train_cnn import _mask_occupied_logits, generate_expert_games, split_and_deduplicate
 
 
 def _pos(*coords: tuple[int, int]) -> Gomoku:
@@ -78,3 +78,20 @@ def test_trained_cnn_beats_random_with_swapped_sides():
             winner, _ = play_game(x, o, opening_moves=2, seed=seed)
             wins += winner == side
     assert wins >= 9
+
+
+def test_trained_cnn_wins_immediately_and_blocks_four():
+    if not DEFAULT_CHECKPOINT.is_file():
+        pytest.skip("CNN checkpoint not trained yet")
+    agent = make_agent("cnn", seed=0)
+
+    win_edge = _pos((1, 0), (2, 0), (1, 1), (2, 1), (1, 2), (2, 2), (1, 3), (5, 5))
+    assert agent.select_action(win_edge) == 1 * 9 + 4
+
+    block_edge = _pos((1, 0), (4, 4), (1, 1), (4, 5), (1, 2), (3, 4), (1, 3))
+    assert agent.select_action(block_edge) == 1 * 9 + 4
+
+    planes = torch.from_numpy(block_edge.encode()).unsqueeze(0)
+    masked = _mask_occupied_logits(torch.zeros((1, 81)), planes)
+    assert masked[0, 1 * 9 + 3].item() == pytest.approx(-1e9)
+    assert masked[0, 1 * 9 + 4].item() == 0.0

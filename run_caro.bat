@@ -34,7 +34,7 @@ if %errorlevel% neq 0 (
 
 :launch
 echo Dang mo trinh duyet... Nhan Ctrl+C hoac dong cua so nay de tat.
-".venv\Scripts\python.exe" -X utf8 -m scripts.web_app %*
+".venv\Scripts\python.exe" -X utf8 -m ui.web_app %*
 if %errorlevel% neq 0 pause
 exit /b 0
 

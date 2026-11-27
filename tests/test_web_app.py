@@ -7,7 +7,7 @@ import urllib.request
 
 import pytest
 
-from scripts.web_app import create_server
+from ui.web_app import create_server
 
 
 @pytest.fixture()

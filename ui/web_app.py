@@ -1,10 +1,10 @@
 """Zero-dependency web server & JSON API for 9x9 Gomoku (Human-vs-AI & AI-vs-AI).
 
 Local 1-click / CLI:
-    python -X utf8 -m scripts.web_app
+    python -X utf8 -m ui.web_app
 
 Cloud deploy (Render / Railway / etc., no Docker needed):
-    python -X utf8 -m scripts.web_app --host 0.0.0.0 --no-browser
+    python -X utf8 -m ui.web_app --host 0.0.0.0 --no-browser
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from game.engine import DIRECTIONS, Gomoku
 from utils.config import load_config
 from utils.logger import LOG_DIR, JsonlLogger
 
-_HTML_PATH = Path(__file__).resolve().parent.parent / "ui" / "web_index.html"
+_HTML_PATH = Path(__file__).resolve().parent / "web_index.html"
 _RUN_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 

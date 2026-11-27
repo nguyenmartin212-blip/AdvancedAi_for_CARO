@@ -14,6 +14,7 @@
     "heuristic": {},
     "alphabeta": {"depth": 3},
     "mcts": {"simulations": 400, "c": 1.4},
-    "cnn": {}
+    "cnn": {},
+    "mcts_cnn": {"simulations": 56, "c_puct": 1.5}
   }
 }

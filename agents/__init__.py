@@ -3,3 +3,4 @@ from agents import heuristic  # noqa: F401
 from agents import alphabeta  # noqa: F401
 from agents import mcts  # noqa: F401
 from agents import cnn  # noqa: F401
+from agents import mcts_cnn  # noqa: F401

@@ -14,4 +14,4 @@ if [ -f "checkpoints/cnn_9x9.pt" ]; then
     .venv/bin/python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
 fi
 
-exec .venv/bin/python -X utf8 -m scripts.web_app "$@"
+exec .venv/bin/python -X utf8 -m ui.web_app "$@"

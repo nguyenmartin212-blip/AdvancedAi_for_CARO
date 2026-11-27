@@ -10,7 +10,7 @@
 ## Code
 - Python ≥ 3.10, type hints cho hàm công khai, mỗi agent một file trong `agents/`.
 - Agent không in ra màn hình trong `select_action`; dùng logger.
-- Mỗi agent có test: nước đi luôn hợp lệ, thắng ngay khi có thể, chặn khi đối thủ sắp thắng, thắng Random.
+- Mỗi agent có bộ kiểm thử trong `tests/`: nước đi luôn hợp lệ, thắng ngay khi có thể, chặn khi đối thủ sắp thắng, thắng Random.
 - Mọi tham số ngẫu nhiên nhận `seed`.
 
 ## Log thí nghiệm & Đánh giá cuối kỳ

@@ -15,7 +15,7 @@
 Không cần cài Docker hay cấu hình thủ công:
 
 - **Windows (1-Click):** Nháy đúp trực tiếp file [run_caro.bat](run_caro.bat) tại thư mục gốc. Script tự tạo `.venv` (nếu chưa có), cài gói tối thiểu và mở trình duyệt với bàn cờ Caro 9×9 hỗ trợ cả **Người đấu AI** (chọn quân X/O, hoàn tác) và **AI đấu AI** (tự chọn 2 agent bất kỳ đối đầu tự động hoặc đi từng bước).
-- **macOS / Linux:** Chạy `bash run_caro.sh` (hoặc gọi trực tiếp `.\.venv\Scripts\python.exe -X utf8 -m scripts.web_app`).
+- **macOS / Linux:** Chạy `bash run_caro.sh` (hoặc gọi trực tiếp `.\.venv\Scripts\python.exe -X utf8 -m ui.web_app`).
 - **Deploy đám mây miễn phí (không cần Docker):** Đẩy repo lên GitHub rồi kết nối trực tiếp với **Render.com** (*New → Blueprint / Web Service*); file [render.yaml](render.yaml) tự cài bản Python + PyTorch CPU nhẹ và khởi chạy máy chủ tại `0.0.0.0:$PORT` kèm health-check `/healthz`.
 
 ## Chạy qua dòng lệnh (CLI & Kiểm thử)
@@ -115,6 +115,14 @@ Chạy kiểm chứng Ablation 1 cho Minimax/Alpha-Beta. Cài PyTorch CPU để 
 - **Huấn luyện CNN Level 5 (`train/train_cnn.py`, `checkpoints/cnn_9x9.pt`).** Sinh 600 ván bao phủ khai cuộc toàn bàn (`legal_actions()`) với Alpha-Beta sâu 2, Heuristic và Random (252,2s trên CPU), tăng trọng số `3.5×` cho các thế thắng/chặn bắt buộc và che mặt nạ logit ô đã đánh ngay trong hàm mất mát. Tách nghiêm ngặt theo đơn vị ván (420 train, 90 validation, 90 test), loại 2.117 trạng thái trùng (`18.798` thế cờ duy nhất), rồi áp dụng 8 phép đối xứng D4 cho tập train để thu được `107.936` mẫu. Checkpoint tốt nhất ở epoch 7 (~415 KiB, thời gian train 356,2s) đạt **47,57% Top-1**, **69,72% Top-3** và **value MSE 0,2619** trên tập test độc lập.
 - **Đối kháng chính thức 5 agent (2.000 ván = 1.000 `compute` + 1.000 `time`, 100 ván/cặp/chế độ).** `cnn` thắng tuyệt đối 200/200 ván trước `random` và 200/200 ván trước `mcts`, thắng đối đầu `heuristic` ở cả hai chế độ (`54-8-38` tại `compute`, `47-16-37` tại `time`), đồng thời đạt `4-27-69` (`compute`) và `5-20-75` (`time`) trước `alphabeta` độ sâu 3 dù không dùng tìm kiếm cây.
 
+## Tác tử Level 7: PUCT kết hợp MCTS + CNN (`mcts_cnn` — Thành viên 3)
+
+Module [agents/mcts_cnn.py](agents/mcts_cnn.py) tái sử dụng trực tiếp checkpoint hai đầu [checkpoints/cnn_9x9.pt](checkpoints/cnn_9x9.pt) để dẫn hướng cây tìm kiếm theo công thức **PUCT** (`simulations=56`, `c_puct=1.5`, `max_children=12`, hỗ trợ gốc `time_limit` và `last_simulations`):
+
+- **Thành phần đã hiện thực:** (1) Đầu `policy` cung cấp xác suất tiên nghiệm `P(s, a)` thu hẹp tập ứng viên cục bộ `candidate_moves(2)`; (2) Đầu `value` `V(s) ∈ [-1, 1]` thay thế hoàn toàn rollout ngẫu nhiên tại nút lá; (3) Phát hiện chính xác thắng 1 nước và thế tứ mở không thể cản (`≥ 2` điểm thắng) ngay khi mở rộng nút.
+- **Thành phần chưa hiện thực so với AlphaZero đầy đủ:** Chưa chạy vòng lặp tự chơi sinh cây MCTS nhiều thế hệ kèm nhiễu Dirichlet ở gốc và đấu loại cập nhật checkpoint (mạng vẫn dùng trọng số học có giám sát từ `train_cnn.py`).
+- **Thực nghiệm kiểm chứng RQ2 (`--agents heuristic alphabeta mcts cnn mcts_cnn -n 20 --seed 0`, 200 ván):** Ở cùng ngân sách thời gian mỗi nước với `mcts` và `alphabeta` (`55,6 ms/nước`, P95 `83,5 ms`, trung bình `49,9` mô phỏng/nước), `mcts_cnn` đạt `score = 0.731` (`47-23-10`): thắng tuyệt đối `mcts` (`20-0-0`), áp đảo `heuristic` (`17-2-1`, `score = 0.90`), **bất bại trước `cnn` đơn thuần (`9-11-0`, `score = 0.725`)**, và nâng điểm đối đầu trước `alphabeta` độ sâu 3 gấp 4 lần so với `cnn` đơn lẻ (từ `0.075` lên **`0.300`**, `1 thắng – 10 hòa – 9 thua`).
+
 ## Tiến độ các level
 
 | Level | Agent | Trạng thái |
@@ -124,9 +132,9 @@ Chạy kiểm chứng Ablation 1 cho Minimax/Alpha-Beta. Cài PyTorch CPU để 
 | 3 | Minimax + Alpha-Beta | Đã có, tên registry là `alphabeta` |
 | 4 | MCTS / UCT | Đã có, tên registry là `mcts` |
 | 5 | CNN policy (+value), học có giám sát | Đã có, tên registry là `cnn` (`checkpoints/cnn_9x9.pt`) |
-| 6 | Reinforcement Learning (self-play) | Bắt buộc tối thiểu 01 agent ở Level 5 hoặc 6 (khuyến khích làm cả 5 và 6) |
-| 7 | AlphaGo-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
-| 8 | AlphaZero-inspired | Khuyến khích (+điểm cộng nếu có thực nghiệm thuyết phục) |
+| 6 | Reinforcement Learning (self-play) | Tùy chọn mở rộng (`feat/rl` — Thành viên 2) |
+| 7 | AlphaGo-inspired (PUCT MCTS + CNN) | Đã có, tên registry là `mcts_cnn` (`agents/mcts_cnn.py`) |
+| 8 | AlphaZero-inspired | Khuyến khích (+điểm cộng nếu có vòng lặp tự chơi MCTS) |
 
 > **Lưu ý thuật ngữ:** Level 7–8 là phiên bản mô phỏng cảm hứng từ AlphaGo/AlphaZero ở quy mô bàn 9×9, cần ghi rõ các thành phần đã/chưa hiện thực và không dùng mạng chưa qua huấn luyện làm bằng chứng triển khai.
 
@@ -177,7 +185,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 1. **Bài toán & Câu hỏi nghiên cứu:** Phát biểu rõ tối thiểu 02 câu hỏi nghiên cứu định lượng (ví dụ: *RQ1 — Trong cùng ngân sách thời gian suy nghĩ mỗi nước trên bàn 9×9, MCTS/UCT có vượt Alpha-Beta không? RQ2 — Tác tử học được từ dữ liệu/tự chơi cải thiện tỷ lệ thắng thế nào so với heuristic tĩnh hoặc khi kết hợp MCTS?*) và phân tích không gian trạng thái Caro 9×9.
 2. **Tác tử học được (Bắt buộc):** CNN Level 5 đã có pipeline, checkpoint đã huấn luyện và kết quả trên tập test tách theo ván. Bổ sung đường cong học từ log huấn luyện vào notebook báo cáo cuối kỳ.
 3. **Đánh giá công bằng & Ablation (Bắt buộc):** Nâng giải đấu từ 12 ván smoke test lên **≥ 100 ván/cặp** (khuyến nghị 200 ván/cặp), đo đủ **02 chế độ ngân sách** (`compute` mặc định và `time` cùng giây/nước), bổ sung `score = (thắng + 0.5 × hòa) / tổng_ván`, độ trễ `p95`, số nút duyệt (`nodes`) / số mô phỏng (`simulations`), khoảng tin cậy 95% (Wilson/Bootstrap) và **tối thiểu 02 nghiên cứu cắt giảm/độ nhạy (ablation/sensitivity)**.
-4. **Giao diện đồ họa & Học liệu nộp:** Giao diện đồ họa chơi Người–Máy & Máy–Máy trên Web (`ui/web_index.html`, `scripts/web_app.py`, `run_caro.bat`) và notebook sinh bảng/biểu đồ (`notebooks/analysis.ipynb`) đã được Thành viên 3 triển khai; nhóm cần hoàn thiện nốt Ablation 2 của MCTS, video demo, báo cáo 5 chương (bản mềm + 01 bản in), slide, poster và lịch sử GitHub minh bạch.
+4. **Giao diện đồ họa & Học liệu nộp:** Giao diện đồ họa chơi Người–Máy & Máy–Máy trên Web (`ui/web_app.py`, `ui/web_index.html`, `run_caro.bat`) và notebook sinh bảng/biểu đồ (`notebooks/analysis.ipynb`) đã được Thành viên 3 triển khai; nhóm cần hoàn thiện nốt Ablation 2 của MCTS, video demo, báo cáo 5 chương (bản mềm + 01 bản in), slide, poster và lịch sử GitHub minh bạch.
 
 ### Thành viên 1 · Tối ưu/Ablation Tìm kiếm & Tác tử CNN Học có giám sát (Level 5)
 
@@ -187,7 +195,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 - **PR 4 — `feat/cnn` (Bắt buộc phạm vi học máy — Level 5 theo Liu Ch. 9–11 & Ch. 15).**
   - Pipeline trong `train/` dùng Alpha-Beta độ sâu 2 để gán nhãn nước đi chuyên gia cho tensor `Gomoku.encode()` kích thước `(3, 9, 9)`. Các ván sinh dữ liệu ghép Alpha-Beta với Alpha-Beta, Heuristic hoặc Random. Nhánh value dùng kết quả ván theo góc nhìn bên sắp đi. Pipeline chia `train/validation/test` theo ván trước khi khử các trạng thái trùng và dùng validation để chọn checkpoint.
   - Huấn luyện mạng CNN bằng PyTorch, che mặt nạ các ô không hợp lệ (`legal_actions` mask) khi suy luận để đảm bảo không sinh nước đi lỗi, lưu lịch sử loss/accuracy theo epoch vào `logs/`, lưu trọng số đã train vào `checkpoints/` (< 50 MB hoặc kèm link tải), khai báo CPU/GPU và thời gian train.
-  - Tạo `agents/cnn.py` + `agents/test_cnn.py`, đăng ký tên `cnn` trong `agents/registry.py` (kèm kiểm thử hợp lệ, thắng/chặn cơ bản, thắng Random).
+  - Tạo `agents/cnn.py` + `tests/test_cnn.py`, đăng ký tên `cnn` trong `agents/registry.py` (kèm kiểm thử hợp lệ, thắng/chặn cơ bản, thắng Random).
 - **Báo cáo & Học liệu phụ trách:** Viết Chương 2 (Heuristic, Minimax/Alpha-Beta, CNN), Chương 3 (biểu diễn trạng thái, thiết kế Level 2, 3, 5, quy trình sinh dữ liệu & huấn luyện) và nội dung kỹ thuật cho Poster.
 - **Nghiệm thu TV1:** Có bảng số liệu + biểu đồ Ablation 1 (bật/tắt cắt tỉa, depth 2 vs. 3); checkpoint `cnn` nạp chạy lại được từ lệnh mẫu, đạt kết quả thực nghiệm thật trước `random` và `heuristic`.
 
@@ -208,7 +216,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 - **PR 3 — `feat/notebooks` (Đã triển khai cho 5 agent Level 1–5; mở rộng lên Level 7 & Ablation 2).**
   - Xây dựng [notebooks/analysis.ipynb](notebooks/analysis.ipynb) và bộ hình minh họa trong `notebooks/figures/` đọc trực tiếp từ `logs/*.jsonl` (ma trận đối đầu, `score` + CI 95%, độ trễ P95, lợi thế đi trước, đường cong huấn luyện `cnn` và Ablation 1).
 - **PR 4 — `feat/web-deploy` (Giao diện đồ họa Người–Máy & Máy–Máy trên Web, Chạy 1-Click & Deploy không cần Docker — Đã triển khai & hợp nhất ở PR #11).**
-  - Đảm nhận toàn bộ phần **Giao diện đồ họa tương tác Người–Máy & Máy–Máy** thông qua máy chủ [scripts/web_app.py](scripts/web_app.py) (`ThreadingHTTPServer` chuẩn Python, không thêm dependency ngoài) và giao diện lưới ô vuông [ui/web_index.html](ui/web_index.html) kèm bộ kiểm thử [scripts/test_web_app.py](scripts/test_web_app.py): chọn mọi cấp độ AI trong `registry`, chọn quân X/O, xem trực quan từng bước, thống kê trực tiếp và lưu/xem lại/tải log lịch sử trận đấu (`logs/web_matches.jsonl`).
+  - Đảm nhận toàn bộ phần **Giao diện đồ họa tương tác Người–Máy & Máy–Máy** thông qua máy chủ [ui/web_app.py](ui/web_app.py) (`ThreadingHTTPServer` chuẩn Python, không thêm dependency ngoài) và giao diện lưới ô vuông [ui/web_index.html](ui/web_index.html) kèm bộ kiểm thử [tests/test_web_app.py](tests/test_web_app.py): chọn mọi cấp độ AI trong `registry`, chọn quân X/O, xem trực quan từng bước, thống kê trực tiếp và lưu/xem lại/tải log lịch sử trận đấu (`logs/web_matches.jsonl`).
   - Cung cấp bộ khởi chạy 1 lần nhấp chuột [run_caro.bat](run_caro.bat) (Windows) / [run_caro.sh](run_caro.sh) (macOS/Linux) tự kiểm tra `.venv` và mở trình duyệt, cùng cấu hình [render.yaml](render.yaml) để deploy Web trực tiếp lên Render không cần Docker.
 - **PR 5 — `feat/mcts-cnn` (Level 7 AlphaGo/AlphaZero-inspired: Tích hợp mạng CNN Policy–Value dẫn hướng cây MCTS theo PUCT).**
   - Xây dựng tác tử `mcts_cnn` kết hợp đầu `policy` (xác suất tiên nghiệm `P(s, a)`) và đầu `value` (`V(s) ∈ [-1, 1]` thay rollout ngẫu nhiên) từ checkpoint `checkpoints/cnn_9x9.pt` vào cây tìm kiếm PUCT có kiểm tra thắng/chặn chiến thuật và hỗ trợ `time_limit`; so sánh trực tiếp `cnn` đơn thuần (`policy-only`) với `mcts_cnn` (`policy + value + MCTS`) để trả lời trọn vẹn **RQ2**.
@@ -226,7 +234,7 @@ Mốc hoàn thành gồm bốn agent chơi được qua cùng registry, một l�
 | :-: | --- | --- | --- | --- | --: |
 | 1 | *(Điền họ tên TV1)* | *(Điền MSSV)* | *(Điền username)* | Level 2 (`heuristic`), Level 3 (`alphabeta` + đếm nút & ablation cắt tỉa), Level 5 (`cnn` + sinh dữ liệu & huấn luyện), Chương 2–3 báo cáo & nội dung Poster | 33.3% |
 | 2 | *(Điền họ tên TV2)* | *(Điền MSSV)* | *(Điền username)* | Level 4 (`mcts` + giới hạn thời gian & Ablation 2 theo số mô phỏng/`c`), CLI (`play_cli`), Video demo & ảnh tình huống chiến thuật, tùy chọn Level 6 (`rl`), Chương 2–3 (MCTS/CLI) & Slide thuyết trình | 33.3% |
-| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), Giao diện Web 1-Click & Deploy (`ui/web_index.html`, `scripts/web_app.py`, `run_caro.bat`, `render.yaml`), Level 7 (`mcts_cnn` PUCT), `notebooks/` phân tích & biểu đồ, quản lý GitHub, Chương 1–5 & hồ sơ nộp | 33.4% |
+| 3 | *(Điền họ tên TV3 — Nhóm trưởng)* | *(Điền MSSV)* | *(Điền username)* | Engine `game/`, `arena/` (round-robin ≥ 100 ván/cặp, 2 chế độ ngân sách, `p95`/CI), Giao diện Web 1-Click & Deploy (`ui/web_app.py`, `ui/web_index.html`, `run_caro.bat`, `render.yaml`), Level 7 (`mcts_cnn` PUCT), `notebooks/` phân tích & biểu đồ, quản lý GitHub, Chương 1–5 & hồ sơ nộp | 33.4% |
 | **Tổng** | | | | **Toàn bộ các thành viên nắm rõ và giải thích được phần việc phụ trách** | **100%** |
 
 ## Quy ước triển khai
@@ -248,7 +256,7 @@ git switch main
 git pull --ff-only origin main
 git switch -c feat/heuristic
 # Sau khi sửa và chạy test
-git add agents/heuristic.py agents/test_heuristic.py agents/__init__.py
+git add agents/heuristic.py tests/test_heuristic.py agents/__init__.py
 git commit -m "feat: add heuristic agent"
 git push -u origin feat/heuristic
 ```
@@ -265,14 +273,16 @@ Lưu ý bắt buộc theo quy định quản lý mã nguồn của giảng viên
 
 | Thư mục | Nội dung |
 | --- | --- |
-| `game/` | Engine Gomoku và test |
-| `agents/` | Giao diện Agent, registry và các bot |
-| `arena/` | Chạy một ván và giải đấu vòng tròn `round-robin` |
-| `scripts/` | Lệnh chạy thử và demo terminal |
-| `configs/`, `utils/` | Cấu hình, seed và logger JSONL |
-| `train/`, `ui/` | Huấn luyện mạng nơ-ron/RL (`train/`) và giao diện Web (`ui/web_index.html`) |
-| `logs/`, `checkpoints/`, `notebooks/` | Kết quả thực nghiệm, trọng số đã train và notebook phân tích |
-| `docs/` | Quy ước nhóm |
+| `game/` | Luật cờ và engine Gomoku 9×9 (`engine.py`) |
+| `agents/` | Giao diện Agent, registry và các cấp AI từ Level 1 đến Level 7 |
+| `arena/` | Đấu một ván (`play.py`) và giải đấu vòng tròn thống kê (`round_robin.py`) |
+| `train/` | Sinh dữ liệu chuyên gia và huấn luyện mạng CNN (`train_cnn.py`) |
+| `ui/` | Máy chủ và giao diện đồ họa Web (`web_app.py`, `web_index.html`) |
+| `scripts/` | Công cụ dòng lệnh CLI (`play_cli.py`, `quick_match.py`, `ablation_search.py`) |
+| `tests/` | Toàn bộ bộ kiểm thử tự động `pytest` cho engine, agent, arena, CLI và Web |
+| `configs/`, `utils/` | Cấu hình trung tâm, quản lý `seed` và logger JSONL |
+| `logs/`, `checkpoints/`, `notebooks/` | Nhật ký thực nghiệm, trọng số đã train và notebook xuất biểu đồ |
+| `docs/`, `lab/` | Quy ước nhóm (`CONVENTIONS.md`), tài liệu tham khảo cục bộ và bài tập Lab môn học |
 
 ## Nộp bài cuối kỳ
 

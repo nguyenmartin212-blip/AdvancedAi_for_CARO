@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 logs/*
 !logs/.gitkeep
+docs/references/
 TTNTNC_De_tai_cuoi_ky_Game_AI.pdf
 Liu - Rule-Based AI Games.pdf
 Bao_cao_tien_do_AdvancedAi_for_CARO.docx

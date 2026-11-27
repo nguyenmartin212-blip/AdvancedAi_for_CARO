@@ -2,7 +2,7 @@
 
 ## Git
 - Nhánh `main` luôn chạy được và `pytest` xanh. Không push thẳng vào `main` và không dồn toàn bộ code lên sát ngày nộp.
-- Mỗi người một nhánh theo việc: `feat/heuristic`, `feat/alphabeta`, `feat/ablation-search`, `feat/mcts`, `feat/mcts-time`, `feat/cnn`, `feat/rl-mcts`, `feat/arena`, `feat/eval-suite`, `feat/web-deploy`, `feat/ui`, `feat/notebooks`.
+- Mỗi người một nhánh theo việc: `feat/heuristic`, `feat/alphabeta`, `feat/ablation-search`, `feat/mcts`, `feat/mcts-time`, `feat/cnn`, `feat/rl`, `feat/mcts-cnn`, `feat/arena`, `feat/eval-suite`, `feat/web-deploy`, `feat/notebooks`.
 - Cấu hình `git config user.name` và `user.email` khớp tài khoản GitHub cá nhân; dùng Issues/Projects và Pull Request (ít nhất 1 người review trước khi merge) để lưu minh chứng trên GitHub Insights.
 - Commit message: `loại: nội dung ngắn` (feat, fix, test, docs, exp). Ví dụ `feat: add alpha-beta agent`.
 - Không commit checkpoint lớn (>50MB) hoặc log thô quá nặng; ghi đường dẫn tải trong README nếu cần.
